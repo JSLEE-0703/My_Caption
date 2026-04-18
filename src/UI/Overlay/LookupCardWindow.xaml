@@ -1,0 +1,62 @@
+<Window x:Class="MyCaption.UI.Overlay.LookupCardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dictionary"
+        Width="420"
+        MinWidth="320"
+        MaxWidth="520"
+        MinHeight="160"
+        MaxHeight="560"
+        SizeToContent="Height"
+        Background="Transparent"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        FontFamily="Bahnschrift">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+
+    <Border Padding="14"
+            CornerRadius="18"
+            Background="#10161B"
+            BorderBrush="#34424C"
+            BorderThickness="1">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      MaxHeight="520">
+            <StackPanel>
+                <TextBlock Text="{Binding LookupWord}" FontSize="22" FontWeight="SemiBold" Foreground="#F3F2EA" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding LookupPhonetic}"
+                           Foreground="#8FE2D6"
+                           FontSize="14"
+                           Visibility="{Binding HasLookupPhonetic, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ItemsControl Margin="0,10,0,0"
+                              ItemsSource="{Binding LookupMeanings}"
+                              Visibility="{Binding HasLookupMeanings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Margin="0,0,0,6" Text="{Binding}" TextWrapping="Wrap" Foreground="#D8E0E5" FontSize="13" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Margin="0,10,0,0"
+                           Text="{Binding LookupExample}"
+                           TextWrapping="Wrap"
+                           Foreground="#F4D08E"
+                           FontSize="12"
+                           Visibility="{Binding HasLookupExample, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Margin="0,10,0,0"
+                           Text="{Binding LookupStatusMessage}"
+                           TextWrapping="Wrap"
+                           Foreground="#AAB7C0"
+                           FontSize="12"
+                           Visibility="{Binding HasLookupStatusMessage, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</Window>

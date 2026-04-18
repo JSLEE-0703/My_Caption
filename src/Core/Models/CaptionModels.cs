@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MyCaption.Core.Models
 {
@@ -66,23 +67,42 @@ namespace MyCaption.Core.Models
         public string TranslatedText { get; private set; }
     }
 
+    public sealed class LookupMeaning
+    {
+        public LookupMeaning(string partOfSpeech, string definition)
+        {
+            PartOfSpeech = partOfSpeech ?? string.Empty;
+            Definition = definition ?? string.Empty;
+        }
+
+        public string PartOfSpeech { get; private set; }
+
+        public string Definition { get; private set; }
+    }
+
     public sealed class LookupResult
     {
-        public LookupResult(string word, string phonetic, string summary, string hint)
+        public LookupResult(string word, string phonetic, IList<LookupMeaning> meanings, string example, string statusMessage, bool isFound)
         {
             Word = word;
             Phonetic = phonetic;
-            Summary = summary;
-            Hint = hint;
+            Meanings = meanings ?? new List<LookupMeaning>();
+            Example = example;
+            StatusMessage = statusMessage;
+            IsFound = isFound;
         }
 
         public string Word { get; private set; }
 
         public string Phonetic { get; private set; }
 
-        public string Summary { get; private set; }
+        public IList<LookupMeaning> Meanings { get; private set; }
 
-        public string Hint { get; private set; }
+        public string Example { get; private set; }
+
+        public string StatusMessage { get; private set; }
+
+        public bool IsFound { get; private set; }
     }
 
     public sealed class LiveCaptionsSnapshotEventArgs : EventArgs
