@@ -14,14 +14,17 @@ namespace MyCaption.Runtime
 {
     public sealed class AppRuntime : IDisposable
     {
+        private readonly object _lookupSyncRoot;
         private readonly AppSettings _settings;
         private readonly SettingsStore _settingsStore;
         private readonly LiveCaptionsCaptureService _captureService;
         private readonly CaptionStabilizer _stabilizer;
         private readonly TranslationDispatcher _translationDispatcher;
-        private readonly ILookupProvider _lookupProvider;
+        private readonly LookupProviderHost _lookupProvider;
         private readonly AltKeyMonitor _altMonitor;
         private readonly Dispatcher _dispatcher;
+        private CancellationTokenSource _lookupCancellationTokenSource;
+        private int _lookupRequestVersion;
 
         public AppRuntime(
             AppSettings settings,
@@ -29,10 +32,11 @@ namespace MyCaption.Runtime
             LiveCaptionsCaptureService captureService,
             CaptionStabilizer stabilizer,
             TranslationDispatcher translationDispatcher,
-            ILookupProvider lookupProvider,
+            LookupProviderHost lookupProvider,
             AltKeyMonitor altMonitor,
             Dispatcher dispatcher)
         {
+            _lookupSyncRoot = new object();
             _settings = settings;
             _settingsStore = settingsStore;
             _captureService = captureService;
@@ -46,20 +50,27 @@ namespace MyCaption.Runtime
             Overlay.OriginalFontSize = _settings.Overlay.OriginalFontSize;
             Overlay.TranslationFontSize = _settings.Overlay.TranslationFontSize;
             Overlay.BackgroundOpacity = _settings.Overlay.BackgroundOpacity;
+            Overlay.ShowTranslationText = _settings.Overlay.ShowTranslationText;
             Panel = new ControlPanelViewModel();
             Panel.CaptureState = CaptureState.Paused;
             Panel.StatusText = "Press Resume Capture to start listening for Windows Live Captions.";
             Panel.ProviderText = string.Format("Translation: {0} - {1}", _translationDispatcher.Provider.DisplayName, _translationDispatcher.Provider.Description);
             Panel.LookupProviderText = string.Format("Lookup: {0}", _lookupProvider.DisplayName);
+            Panel.LookupStatusText = _lookupProvider.StatusText;
+            Panel.DictionaryProviderName = _settings.Dictionary.ProviderName;
+            Panel.DictionaryFilePath = _lookupProvider.DictionaryFilePath;
+            Panel.MdictExecutablePath = _lookupProvider.MdictExecutablePath;
             Panel.OverlayVisible = true;
             Panel.OriginalOnTop = _settings.Overlay.OriginalOnTop;
             Panel.HideOriginalLiveCaptions = _settings.LiveCaptions.HideOriginalWindow;
+            Panel.ShowTranslationText = _settings.Overlay.ShowTranslationText;
             Panel.FontSize = _settings.Overlay.OriginalFontSize;
             Panel.BackgroundOpacity = _settings.Overlay.BackgroundOpacity;
 
             _captureService.SnapshotCaptured += OnSnapshotCaptured;
             _captureService.StateChanged += OnCaptureStateChanged;
             _translationDispatcher.TranslationCompleted += OnTranslationCompleted;
+            _lookupProvider.ProviderStatusChanged += OnLookupProviderStatusChanged;
             _altMonitor.AltStateChanged += OnAltStateChanged;
         }
 
@@ -86,6 +97,7 @@ namespace MyCaption.Runtime
 
         public void Stop()
         {
+            CancelLookup();
             Panel.IsRunning = false;
             Panel.CaptureState = CaptureState.Paused;
             Panel.StatusText = "Capture paused.";
@@ -115,8 +127,10 @@ namespace MyCaption.Runtime
             Overlay.OriginalFontSize = _settings.Overlay.OriginalFontSize;
             Overlay.TranslationFontSize = _settings.Overlay.TranslationFontSize;
             Overlay.BackgroundOpacity = _settings.Overlay.BackgroundOpacity;
+            Overlay.ShowTranslationText = _settings.Overlay.ShowTranslationText;
             Panel.FontSize = _settings.Overlay.OriginalFontSize;
             Panel.BackgroundOpacity = _settings.Overlay.BackgroundOpacity;
+            Panel.ShowTranslationText = _settings.Overlay.ShowTranslationText;
             SaveSettings();
             RaiseOverlaySettingsChanged();
         }
@@ -162,6 +176,44 @@ namespace MyCaption.Runtime
             RaiseOverlaySettingsChanged();
         }
 
+        public void UpdateShowTranslationText(bool showTranslationText)
+        {
+            _settings.Overlay.ShowTranslationText = showTranslationText;
+            Overlay.ShowTranslationText = showTranslationText;
+            Panel.ShowTranslationText = showTranslationText;
+            SaveSettings();
+            RaiseOverlaySettingsChanged();
+        }
+
+        public void UpdateDictionaryFilePath(string dictionaryFilePath)
+        {
+            _lookupProvider.UpdateDictionaryFilePath(dictionaryFilePath);
+            _settings.Dictionary.ProviderName = _settings.Dictionary.ProviderName ?? "JsonFile";
+            _settings.Dictionary.DictionaryFilePath = _lookupProvider.DictionaryFilePath;
+            Panel.DictionaryFilePath = _lookupProvider.DictionaryFilePath;
+            SaveSettings();
+        }
+
+        public void UpdateDictionaryProviderName(string providerName)
+        {
+            _lookupProvider.UpdateProviderName(providerName);
+            _settings.Dictionary.ProviderName = string.IsNullOrWhiteSpace(providerName) ? "JsonFile" : providerName.Trim();
+            _settings.Dictionary.DictionaryFilePath = _lookupProvider.DictionaryFilePath;
+            _settings.Dictionary.MdictExecutablePath = _lookupProvider.MdictExecutablePath;
+            Panel.DictionaryProviderName = _settings.Dictionary.ProviderName;
+            Panel.DictionaryFilePath = _lookupProvider.DictionaryFilePath;
+            Panel.MdictExecutablePath = _lookupProvider.MdictExecutablePath;
+            SaveSettings();
+        }
+
+        public void UpdateMdictExecutablePath(string mdictExecutablePath)
+        {
+            _lookupProvider.UpdateMdictExecutablePath(mdictExecutablePath);
+            _settings.Dictionary.MdictExecutablePath = _lookupProvider.MdictExecutablePath;
+            Panel.MdictExecutablePath = _lookupProvider.MdictExecutablePath;
+            SaveSettings();
+        }
+
         public async void LookupAsync(WordTokenViewModel token)
         {
             if (token == null || !token.CanClick)
@@ -169,8 +221,62 @@ namespace MyCaption.Runtime
                 return;
             }
 
-            LookupResult result = await _lookupProvider.LookupAsync(token.LookupKey, CancellationToken.None);
-            Overlay.UpdateLookup(result);
+            CancellationToken cancellationToken;
+            int requestVersion;
+            lock (_lookupSyncRoot)
+            {
+                if (_lookupCancellationTokenSource != null)
+                {
+                    _lookupCancellationTokenSource.Cancel();
+                    _lookupCancellationTokenSource.Dispose();
+                }
+
+                _lookupCancellationTokenSource = new CancellationTokenSource();
+                cancellationToken = _lookupCancellationTokenSource.Token;
+                _lookupRequestVersion++;
+                requestVersion = _lookupRequestVersion;
+            }
+
+            try
+            {
+                LookupResult result = await _lookupProvider.LookupAsync(token.LookupKey, cancellationToken);
+                if (!IsLookupRequestCurrent(requestVersion, cancellationToken))
+                {
+                    return;
+                }
+
+                var ignoredDispatch = _dispatcher.BeginInvoke(new Action(delegate
+                {
+                    if (IsLookupRequestCurrent(requestVersion, cancellationToken))
+                    {
+                        Overlay.UpdateLookup(result);
+                    }
+                }));
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                if (!IsLookupRequestCurrent(requestVersion, cancellationToken))
+                {
+                    return;
+                }
+
+                var ignoredDispatch = _dispatcher.BeginInvoke(new Action(delegate
+                {
+                    if (IsLookupRequestCurrent(requestVersion, cancellationToken))
+                    {
+                        Overlay.UpdateLookup(new LookupResult(
+                            token.Text,
+                            string.Empty,
+                            null,
+                            string.Empty,
+                            "Dictionary lookup failed: " + ex.Message,
+                            false));
+                    }
+                }));
+            }
         }
 
         private void OnCaptureStateChanged(object sender, CaptureStateChangedEventArgs e)
@@ -201,6 +307,16 @@ namespace MyCaption.Runtime
 
             if (!string.IsNullOrWhiteSpace(update.TranslationRequestText))
             {
+                if (!_settings.Translation.Enabled)
+                {
+                    _dispatcher.BeginInvoke(new Action(delegate
+                    {
+                        Overlay.UpdateTranslationText(string.Empty);
+                        Panel.PreviewTranslation = string.Empty;
+                    }));
+                    return;
+                }
+
                 _translationDispatcher.Request(new TranslationRequest(
                     update.TranslationRequestText,
                     _settings.Translation.SourceLanguage,
@@ -227,6 +343,7 @@ namespace MyCaption.Runtime
             Overlay.IsInteractive = e.IsAltPressed;
             if (!e.IsAltPressed)
             {
+                CancelLookup();
                 Overlay.UpdateLookup(null);
             }
 
@@ -235,6 +352,18 @@ namespace MyCaption.Runtime
             {
                 handler(this, EventArgs.Empty);
             }
+        }
+
+        private void OnLookupProviderStatusChanged(object sender, EventArgs e)
+        {
+            _dispatcher.BeginInvoke(new Action(delegate
+            {
+                Panel.LookupProviderText = string.Format("Lookup: {0}", _lookupProvider.DisplayName);
+                Panel.LookupStatusText = _lookupProvider.StatusText;
+                Panel.DictionaryProviderName = _settings.Dictionary.ProviderName;
+                Panel.DictionaryFilePath = _lookupProvider.DictionaryFilePath;
+                Panel.MdictExecutablePath = _lookupProvider.MdictExecutablePath;
+            }));
         }
 
         private void RaiseOverlaySettingsChanged()
@@ -246,12 +375,39 @@ namespace MyCaption.Runtime
             }
         }
 
+        private bool IsLookupRequestCurrent(int requestVersion, CancellationToken cancellationToken)
+        {
+            lock (_lookupSyncRoot)
+            {
+                return !cancellationToken.IsCancellationRequested &&
+                    requestVersion == _lookupRequestVersion &&
+                    _lookupCancellationTokenSource != null &&
+                    cancellationToken == _lookupCancellationTokenSource.Token;
+            }
+        }
+
+        private void CancelLookup()
+        {
+            lock (_lookupSyncRoot)
+            {
+                _lookupRequestVersion++;
+
+                if (_lookupCancellationTokenSource != null)
+                {
+                    _lookupCancellationTokenSource.Cancel();
+                    _lookupCancellationTokenSource.Dispose();
+                    _lookupCancellationTokenSource = null;
+                }
+            }
+        }
+
         public void Dispose()
         {
             Stop();
             _captureService.SnapshotCaptured -= OnSnapshotCaptured;
             _captureService.StateChanged -= OnCaptureStateChanged;
             _translationDispatcher.TranslationCompleted -= OnTranslationCompleted;
+            _lookupProvider.ProviderStatusChanged -= OnLookupProviderStatusChanged;
             _altMonitor.AltStateChanged -= OnAltStateChanged;
             _translationDispatcher.Dispose();
             _altMonitor.Dispose();

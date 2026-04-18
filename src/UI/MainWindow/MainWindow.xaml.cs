@@ -1,5 +1,8 @@
 using System;
+using System.IO;
 using System.Windows;
+using System.Windows.Input;
+using Microsoft.Win32;
 using MyCaption.Runtime;
 using MyCaption.UI.Overlay;
 
@@ -28,8 +31,13 @@ namespace MyCaption.UI.MainWindow
         {
             OriginalOnTopCheckBox.IsChecked = _runtime.Panel.OriginalOnTop;
             HideOriginalWindowCheckBox.IsChecked = _runtime.Panel.HideOriginalLiveCaptions;
+            ShowTranslationTextCheckBox.IsChecked = _runtime.Panel.ShowTranslationText;
             FontSizeSlider.Value = _runtime.Panel.FontSize;
             OpacitySlider.Value = _runtime.Panel.BackgroundOpacity;
+            SelectLookupProvider(_runtime.Panel.DictionaryProviderName);
+            DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
+            MdictExecutablePathTextBox.Text = _runtime.Panel.MdictExecutablePath;
+            UpdateLookupProviderControls();
             EnsureOverlayWindow();
             _isInitializing = false;
         }
@@ -137,6 +145,16 @@ namespace MyCaption.UI.MainWindow
             _runtime.UpdateHideOriginalWindow(HideOriginalWindowCheckBox.IsChecked == true);
         }
 
+        private void ShowTranslationTextCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            _runtime.UpdateShowTranslationText(ShowTranslationTextCheckBox.IsChecked == true);
+        }
+
         private void FontSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (_isInitializing)
@@ -155,6 +173,202 @@ namespace MyCaption.UI.MainWindow
             }
 
             _runtime.UpdateBackgroundOpacity(e.NewValue);
+        }
+
+        private void DictionaryPathTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitDictionaryPath();
+        }
+
+        private void DictionaryPathTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            CommitDictionaryPath();
+            e.Handled = true;
+        }
+
+        private void BrowseDictionaryButton_Click(object sender, RoutedEventArgs e)
+        {
+            string currentPath = DictionaryPathTextBox.Text;
+            OpenFileDialog dialog = new OpenFileDialog();
+            bool isMdictProvider = string.Equals(GetSelectedLookupProviderName(), "MdictCli", StringComparison.OrdinalIgnoreCase);
+            dialog.Filter = isMdictProvider
+                ? "MDict files (*.mdx)|*.mdx|All files (*.*)|*.*"
+                : "JSON files (*.json)|*.json|All files (*.*)|*.*";
+            dialog.CheckFileExists = isMdictProvider;
+            dialog.FileName = string.IsNullOrWhiteSpace(currentPath)
+                ? (isMdictProvider ? "dictionary.mdx" : "dictionary.json")
+                : Path.GetFileName(currentPath);
+
+            string initialDirectory = string.Empty;
+            if (!string.IsNullOrWhiteSpace(currentPath))
+            {
+                try
+                {
+                    initialDirectory = Path.GetDirectoryName(currentPath);
+                }
+                catch
+                {
+                    initialDirectory = string.Empty;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            bool? result = dialog.ShowDialog(this);
+            if (result == true)
+            {
+                DictionaryPathTextBox.Text = dialog.FileName;
+                CommitDictionaryPath();
+            }
+        }
+
+        private void CommitDictionaryPath()
+        {
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            string currentText = DictionaryPathTextBox.Text ?? string.Empty;
+            string savedPath = _runtime.Panel.DictionaryFilePath ?? string.Empty;
+            if (string.Equals(currentText.Trim(), savedPath.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _runtime.UpdateDictionaryFilePath(currentText);
+            DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
+        }
+
+        private void LookupProviderComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_isInitializing)
+            {
+                UpdateLookupProviderControls();
+                return;
+            }
+
+            string providerName = GetSelectedLookupProviderName();
+            _runtime.UpdateDictionaryProviderName(providerName);
+            DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
+            MdictExecutablePathTextBox.Text = _runtime.Panel.MdictExecutablePath;
+            UpdateLookupProviderControls();
+        }
+
+        private void MdictExecutablePathTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitMdictExecutablePath();
+        }
+
+        private void MdictExecutablePathTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            CommitMdictExecutablePath();
+            e.Handled = true;
+        }
+
+        private void BrowseMdictExecutableButton_Click(object sender, RoutedEventArgs e)
+        {
+            string currentPath = MdictExecutablePathTextBox.Text;
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*";
+            dialog.CheckFileExists = true;
+            dialog.FileName = string.IsNullOrWhiteSpace(currentPath) ? "mdict.exe" : Path.GetFileName(currentPath);
+
+            string initialDirectory = string.Empty;
+            if (!string.IsNullOrWhiteSpace(currentPath))
+            {
+                try
+                {
+                    initialDirectory = Path.GetDirectoryName(currentPath);
+                }
+                catch
+                {
+                    initialDirectory = string.Empty;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            bool? result = dialog.ShowDialog(this);
+            if (result == true)
+            {
+                MdictExecutablePathTextBox.Text = dialog.FileName;
+                CommitMdictExecutablePath();
+            }
+        }
+
+        private void CommitMdictExecutablePath()
+        {
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            string currentText = MdictExecutablePathTextBox.Text ?? string.Empty;
+            string savedPath = _runtime.Panel.MdictExecutablePath ?? string.Empty;
+            if (string.Equals(currentText.Trim(), savedPath.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _runtime.UpdateMdictExecutablePath(currentText);
+            MdictExecutablePathTextBox.Text = _runtime.Panel.MdictExecutablePath;
+        }
+
+        private string GetSelectedLookupProviderName()
+        {
+            System.Windows.Controls.ComboBoxItem item = LookupProviderComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
+            if (item == null)
+            {
+                return "JsonFile";
+            }
+
+            string providerName = item.Tag as string;
+            return string.IsNullOrWhiteSpace(providerName) ? "JsonFile" : providerName;
+        }
+
+        private void SelectLookupProvider(string providerName)
+        {
+            string targetProvider = string.IsNullOrWhiteSpace(providerName) ? "JsonFile" : providerName;
+
+            for (int i = 0; i < LookupProviderComboBox.Items.Count; i++)
+            {
+                System.Windows.Controls.ComboBoxItem item = LookupProviderComboBox.Items[i] as System.Windows.Controls.ComboBoxItem;
+                if (item == null)
+                {
+                    continue;
+                }
+
+                if (string.Equals(item.Tag as string, targetProvider, StringComparison.OrdinalIgnoreCase))
+                {
+                    LookupProviderComboBox.SelectedIndex = i;
+                    return;
+                }
+            }
+
+            LookupProviderComboBox.SelectedIndex = 0;
+        }
+
+        private void UpdateLookupProviderControls()
+        {
+            bool isMdictProvider = string.Equals(GetSelectedLookupProviderName(), "MdictCli", StringComparison.OrdinalIgnoreCase);
+            MdictExecutablePanel.Visibility = isMdictProvider ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }

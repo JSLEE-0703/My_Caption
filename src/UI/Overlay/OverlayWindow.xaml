@@ -85,7 +85,7 @@
                     Visibility="{Binding IsInteractive, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock Foreground="#8FE2D6"
                            FontSize="12"
-                           Text="Hold Alt to move, resize, or click words." />
+                           Text="Hold Alt while clicking a word to open the dictionary popup. Release Alt to close it." />
             </Border>
 
             <Border x:Name="OriginalPanel"
@@ -102,7 +102,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Button Style="{StaticResource TokenButtonStyle}"
-                                    Click="WordTokenButton_Click"
+                                    PreviewMouseLeftButtonDown="WordTokenButton_PreviewMouseLeftButtonDown"
                                     IsEnabled="{Binding CanClick}"
                                     Tag="{Binding}">
                                 <TextBlock Text="{Binding Text}" FontSize="{Binding DataContext.OriginalFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="#F3F2EA" />
@@ -117,25 +117,16 @@
                     Margin="0,8,0,0"
                     Padding="2"
                     Background="Transparent"
-                    MouseLeftButtonDown="Chrome_MouseLeftButtonDown">
+                    MouseLeftButtonDown="Chrome_MouseLeftButtonDown"
+                    Visibility="{Binding ShowTranslationText, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock x:Name="TranslatedTextBlock"
                            Foreground="#F4D08E"
                            FontSize="{Binding TranslationFontSize}"
                            TextWrapping="Wrap"
                            Text="{Binding TranslatedText}" />
             </Border>
-        </Grid>
 
-        <Popup x:Name="LookupPopup" AllowsTransparency="True" Placement="Bottom" StaysOpen="False">
-            <Border Width="340" Padding="14" CornerRadius="18" Background="#10161B" BorderBrush="#34424C" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Text="{Binding LookupWord}" FontSize="22" FontWeight="SemiBold" Foreground="#F3F2EA" />
-                    <TextBlock Margin="0,4,0,0" Text="{Binding LookupPhonetic}" Foreground="#8FE2D6" FontSize="14" />
-                    <TextBlock Margin="0,10,0,0" Text="{Binding LookupSummary}" TextWrapping="Wrap" Foreground="#D8E0E5" FontSize="13" />
-                    <TextBlock Margin="0,10,0,0" Text="{Binding LookupHint}" TextWrapping="Wrap" Foreground="#AAB7C0" FontSize="12" />
-                </StackPanel>
-            </Border>
-        </Popup>
+        </Grid>
 
         <Thumb x:Name="TopThumb" Height="10" HorizontalAlignment="Stretch" VerticalAlignment="Top" Cursor="SizeNS" DragDelta="TopThumb_DragDelta" Style="{StaticResource ResizeThumbStyle}" />
         <Thumb x:Name="BottomThumb" Height="10" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Cursor="SizeNS" DragDelta="BottomThumb_DragDelta" Style="{StaticResource ResizeThumbStyle}" />

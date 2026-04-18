@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,10 +20,12 @@ namespace MyCaption.Core.Lookup
                 : word.Trim().ToLowerInvariant();
 
             string phonetic = string.Format(CultureInfo.InvariantCulture, "/{0}/", normalized);
-            string summary = "Word hit-testing is active. Hook ILookupProvider to your local dictionary, browser helper, or offline lexicon next.";
-            string hint = "This popup proves Alt interaction and token-level click handling are wired end-to-end.";
+            List<LookupMeaning> meanings = new List<LookupMeaning>
+            {
+                new LookupMeaning("noun", "Stub dictionary entry for provider integration testing.")
+            };
 
-            return Task.FromResult(new LookupResult(normalized, phonetic, summary, hint));
+            return Task.FromResult(new LookupResult(normalized, phonetic, meanings, string.Empty, "Stub dictionary provider result.", true));
         }
     }
 }
