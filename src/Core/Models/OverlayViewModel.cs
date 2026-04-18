@@ -8,29 +8,36 @@ namespace MyCaption.Core.Models
         private string _originalText;
         private string _translatedText;
         private bool _isInteractive;
+        private bool _isLookupVisible;
+        private bool _showTranslationText;
         private double _originalFontSize;
         private double _translationFontSize;
         private double _backgroundOpacity;
         private string _lookupWord;
         private string _lookupPhonetic;
-        private string _lookupSummary;
-        private string _lookupHint;
+        private string _lookupExample;
+        private string _lookupStatusMessage;
 
         public OverlayViewModel()
         {
             OriginalTokens = new ObservableCollection<WordTokenViewModel>();
+            LookupMeanings = new ObservableCollection<string>();
             _originalText = string.Empty;
             _translatedText = string.Empty;
+            _isLookupVisible = false;
+            _showTranslationText = true;
             _originalFontSize = 26;
             _translationFontSize = 23;
             _backgroundOpacity = 0.88;
             _lookupWord = string.Empty;
             _lookupPhonetic = string.Empty;
-            _lookupSummary = string.Empty;
-            _lookupHint = string.Empty;
+            _lookupExample = string.Empty;
+            _lookupStatusMessage = string.Empty;
         }
 
         public ObservableCollection<WordTokenViewModel> OriginalTokens { get; private set; }
+
+        public ObservableCollection<string> LookupMeanings { get; private set; }
 
         public string OriginalText
         {
@@ -54,6 +61,18 @@ namespace MyCaption.Core.Models
                     UpdateTokenInteractivity();
                 }
             }
+        }
+
+        public bool ShowTranslationText
+        {
+            get { return _showTranslationText; }
+            set { SetProperty(ref _showTranslationText, value, "ShowTranslationText"); }
+        }
+
+        public bool IsLookupVisible
+        {
+            get { return _isLookupVisible; }
+            set { SetProperty(ref _isLookupVisible, value, "IsLookupVisible"); }
         }
 
         public double OriginalFontSize
@@ -83,19 +102,57 @@ namespace MyCaption.Core.Models
         public string LookupPhonetic
         {
             get { return _lookupPhonetic; }
-            set { SetProperty(ref _lookupPhonetic, value, "LookupPhonetic"); }
+            set
+            {
+                if (SetProperty(ref _lookupPhonetic, value, "LookupPhonetic"))
+                {
+                    OnPropertyChanged("HasLookupPhonetic");
+                }
+            }
         }
 
-        public string LookupSummary
+        public string LookupExample
         {
-            get { return _lookupSummary; }
-            set { SetProperty(ref _lookupSummary, value, "LookupSummary"); }
+            get { return _lookupExample; }
+            set
+            {
+                if (SetProperty(ref _lookupExample, value, "LookupExample"))
+                {
+                    OnPropertyChanged("HasLookupExample");
+                }
+            }
         }
 
-        public string LookupHint
+        public string LookupStatusMessage
         {
-            get { return _lookupHint; }
-            set { SetProperty(ref _lookupHint, value, "LookupHint"); }
+            get { return _lookupStatusMessage; }
+            set
+            {
+                if (SetProperty(ref _lookupStatusMessage, value, "LookupStatusMessage"))
+                {
+                    OnPropertyChanged("HasLookupStatusMessage");
+                }
+            }
+        }
+
+        public bool HasLookupPhonetic
+        {
+            get { return !string.IsNullOrWhiteSpace(LookupPhonetic); }
+        }
+
+        public bool HasLookupExample
+        {
+            get { return !string.IsNullOrWhiteSpace(LookupExample); }
+        }
+
+        public bool HasLookupStatusMessage
+        {
+            get { return !string.IsNullOrWhiteSpace(LookupStatusMessage); }
+        }
+
+        public bool HasLookupMeanings
+        {
+            get { return LookupMeanings.Count > 0; }
         }
 
         public void UpdateOriginalText(string text, IEnumerable<WordTokenViewModel> tokens)
@@ -115,21 +172,58 @@ namespace MyCaption.Core.Models
             TranslatedText = text ?? string.Empty;
         }
 
+        public void BeginLookup(string word)
+        {
+            IsLookupVisible = true;
+            LookupWord = word ?? string.Empty;
+            LookupPhonetic = string.Empty;
+            LookupMeanings.Clear();
+            LookupExample = string.Empty;
+            LookupStatusMessage = "Looking up dictionary entry...";
+            OnPropertyChanged("HasLookupMeanings");
+        }
+
         public void UpdateLookup(LookupResult result)
         {
             if (result == null)
             {
+                IsLookupVisible = false;
                 LookupWord = string.Empty;
                 LookupPhonetic = string.Empty;
-                LookupSummary = string.Empty;
-                LookupHint = string.Empty;
+                LookupMeanings.Clear();
+                LookupExample = string.Empty;
+                LookupStatusMessage = string.Empty;
+                OnPropertyChanged("HasLookupMeanings");
                 return;
             }
 
+            IsLookupVisible = true;
             LookupWord = result.Word;
             LookupPhonetic = result.Phonetic;
-            LookupSummary = result.Summary;
-            LookupHint = result.Hint;
+            LookupMeanings.Clear();
+
+            int count = 0;
+            foreach (LookupMeaning meaning in result.Meanings)
+            {
+                if (meaning == null || string.IsNullOrWhiteSpace(meaning.Definition))
+                {
+                    continue;
+                }
+
+                string line = string.IsNullOrWhiteSpace(meaning.PartOfSpeech)
+                    ? meaning.Definition
+                    : meaning.PartOfSpeech + " - " + meaning.Definition;
+                LookupMeanings.Add(line);
+                count++;
+                if (count >= 3)
+                {
+                    break;
+                }
+            }
+
+            LookupExample = result.Example ?? string.Empty;
+            LookupStatusMessage = result.StatusMessage ?? string.Empty;
+            OnPropertyChanged("HasLookupMeanings");
         }
 
         private void UpdateTokenInteractivity()

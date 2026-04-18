@@ -56,6 +56,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="src\UI\Overlay\LookupCardWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -63,6 +67,10 @@
     <Compile Include="src\App\AppRuntime.cs" />
     <Compile Include="src\Core\Capture\LiveCaptionsCaptureService.cs" />
     <Compile Include="src\Core\Lookup\ILookupProvider.cs" />
+    <Compile Include="src\Core\Lookup\JsonFileLookupProvider.cs" />
+    <Compile Include="src\Core\Lookup\LookupProviderFactory.cs" />
+    <Compile Include="src\Core\Lookup\MdictLookupParser.cs" />
+    <Compile Include="src\Core\Lookup\MdictLookupProvider.cs" />
     <Compile Include="src\Core\Lookup\StubLookupProvider.cs" />
     <Compile Include="src\Core\Models\AppSettings.cs" />
     <Compile Include="src\Core\Models\BindableBase.cs" />
@@ -73,6 +81,7 @@
     <Compile Include="src\Core\Stabilization\CaptionStabilizer.cs" />
     <Compile Include="src\Core\Translation\ITranslationProvider.cs" />
     <Compile Include="src\Core\Translation\StubTranslationProvider.cs" />
+    <Compile Include="src\Core\Translation\TranslationProviderFactory.cs" />
     <Compile Include="src\Core\Translation\TranslationDispatcher.cs" />
     <Compile Include="src\Infrastructure\Automation\LiveCaptionsAutomationClient.cs" />
     <Compile Include="src\Infrastructure\Persistence\SettingsStore.cs" />
@@ -84,6 +93,10 @@
     </Compile>
     <Compile Include="src\UI\Overlay\OverlayWindow.xaml.cs">
       <DependentUpon>OverlayWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\UI\Overlay\LookupCardWindow.xaml.cs">
+      <DependentUpon>LookupCardWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

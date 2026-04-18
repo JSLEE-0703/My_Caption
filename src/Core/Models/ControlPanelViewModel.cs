@@ -5,11 +5,16 @@ namespace MyCaption.Core.Models
         private string _statusText;
         private string _providerText;
         private string _lookupProviderText;
+        private string _lookupStatusText;
+        private string _dictionaryProviderName;
+        private string _dictionaryFilePath;
+        private string _mdictExecutablePath;
         private bool _isRunning;
         private CaptureState _captureState;
         private bool _overlayVisible;
         private bool _originalOnTop;
         private bool _hideOriginalLiveCaptions;
+        private bool _showTranslationText;
         private double _fontSize;
         private double _backgroundOpacity;
         private string _previewOriginal;
@@ -31,6 +36,30 @@ namespace MyCaption.Core.Models
         {
             get { return _lookupProviderText; }
             set { SetProperty(ref _lookupProviderText, value, "LookupProviderText"); }
+        }
+
+        public string LookupStatusText
+        {
+            get { return _lookupStatusText; }
+            set { SetProperty(ref _lookupStatusText, value, "LookupStatusText"); }
+        }
+
+        public string DictionaryProviderName
+        {
+            get { return _dictionaryProviderName; }
+            set { SetProperty(ref _dictionaryProviderName, value, "DictionaryProviderName"); }
+        }
+
+        public string DictionaryFilePath
+        {
+            get { return _dictionaryFilePath; }
+            set { SetProperty(ref _dictionaryFilePath, value, "DictionaryFilePath"); }
+        }
+
+        public string MdictExecutablePath
+        {
+            get { return _mdictExecutablePath; }
+            set { SetProperty(ref _mdictExecutablePath, value, "MdictExecutablePath"); }
         }
 
         public bool IsRunning
@@ -76,6 +105,12 @@ namespace MyCaption.Core.Models
         {
             get { return _hideOriginalLiveCaptions; }
             set { SetProperty(ref _hideOriginalLiveCaptions, value, "HideOriginalLiveCaptions"); }
+        }
+
+        public bool ShowTranslationText
+        {
+            get { return _showTranslationText; }
+            set { SetProperty(ref _showTranslationText, value, "ShowTranslationText"); }
         }
 
         public double FontSize

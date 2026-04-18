@@ -14,6 +14,8 @@ namespace MyCaption.UI.Overlay
     public partial class OverlayWindow : Window
     {
         private readonly AppRuntime _runtime;
+        private LookupCardWindow _lookupWindow;
+        private bool _isClosingLookupWindow;
 
         public OverlayWindow(AppRuntime runtime)
         {
@@ -55,7 +57,7 @@ namespace MyCaption.UI.Overlay
             ApplyClickThrough(_runtime.Settings.Interaction.StartClickThrough && !_runtime.Overlay.IsInteractive);
             if (!_runtime.Overlay.IsInteractive)
             {
-                LookupPopup.IsOpen = false;
+                HideLookupWindow();
             }
         }
 
@@ -124,12 +126,13 @@ namespace MyCaption.UI.Overlay
                 current = VisualTreeHelper.GetParent(current);
             }
 
-            LookupPopup.IsOpen = false;
+            _runtime.Overlay.UpdateLookup(null);
+            HideLookupWindow();
             DragMove();
             e.Handled = true;
         }
 
-        private void WordTokenButton_Click(object sender, RoutedEventArgs e)
+        private void WordTokenButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (!_runtime.Overlay.IsInteractive)
             {
@@ -148,9 +151,96 @@ namespace MyCaption.UI.Overlay
                 return;
             }
 
-            LookupPopup.PlacementTarget = button;
-            LookupPopup.IsOpen = true;
+            _runtime.Overlay.BeginLookup(token.Text);
+            ShowLookupWindowFor(button);
             _runtime.LookupAsync(token);
+            e.Handled = true;
+        }
+
+        private void ShowLookupWindowFor(FrameworkElement anchor)
+        {
+            EnsureLookupWindow();
+            if (_lookupWindow == null || _isClosingLookupWindow)
+            {
+                return;
+            }
+
+            if (!_lookupWindow.IsVisible)
+            {
+                _lookupWindow.Show();
+            }
+
+            Point point = GetLookupAnchorPoint(anchor);
+            _lookupWindow.PositionNear(point);
+        }
+
+        private void EnsureLookupWindow()
+        {
+            if (_lookupWindow != null)
+            {
+                return;
+            }
+
+            _lookupWindow = new LookupCardWindow();
+            _lookupWindow.DataContext = _runtime.Overlay;
+            _lookupWindow.Closed += LookupWindow_Closed;
+        }
+
+        private void LookupWindow_Closed(object sender, EventArgs e)
+        {
+            _lookupWindow = null;
+            _isClosingLookupWindow = false;
+        }
+
+        private Point GetLookupAnchorPoint(FrameworkElement anchor)
+        {
+            try
+            {
+                if (anchor != null)
+                {
+                    PresentationSource anchorSource = PresentationSource.FromVisual(anchor);
+                    if (anchorSource != null)
+                    {
+                        Point point = anchor.PointToScreen(new Point(anchor.ActualWidth, anchor.ActualHeight));
+                        if (anchorSource.CompositionTarget != null)
+                        {
+                            point = anchorSource.CompositionTarget.TransformFromDevice.Transform(point);
+                        }
+
+                        return point;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return new Point(Left + Width - 28.0, Top + 48.0);
+        }
+
+        private void HideLookupWindow()
+        {
+            if (_lookupWindow != null && _lookupWindow.IsVisible && !_isClosingLookupWindow)
+            {
+                _lookupWindow.Hide();
+            }
+        }
+
+        private void CloseLookupWindow()
+        {
+            if (_lookupWindow != null && !_isClosingLookupWindow)
+            {
+                try
+                {
+                    _isClosingLookupWindow = true;
+                    _lookupWindow.Close();
+                }
+                finally
+                {
+                    _lookupWindow = null;
+                    _isClosingLookupWindow = false;
+                }
+            }
         }
 
         private void TopThumb_DragDelta(object sender, DragDeltaEventArgs e)
@@ -221,6 +311,7 @@ namespace MyCaption.UI.Overlay
 
         protected override void OnClosed(EventArgs e)
         {
+            CloseLookupWindow();
             _runtime.InteractiveModeChanged -= Runtime_InteractiveModeChanged;
             _runtime.OverlaySettingsChanged -= Runtime_OverlaySettingsChanged;
             base.OnClosed(e);

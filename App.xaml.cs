@@ -26,9 +26,11 @@ namespace MyCaption
             CaptionStabilizer stabilizer = new CaptionStabilizer(
                 settings.LiveCaptions.SyncCommitThreshold,
                 settings.LiveCaptions.IdleCommitThreshold);
-            StubTranslationProvider translationProvider = new StubTranslationProvider(settings.Translation);
+            ITranslationProviderFactory translationProviderFactory = new TranslationProviderFactory();
+            ITranslationProvider translationProvider = translationProviderFactory.Create(settings.Translation);
             TranslationDispatcher translationDispatcher = new TranslationDispatcher(translationProvider);
-            StubLookupProvider lookupProvider = new StubLookupProvider();
+            ILookupProviderFactory lookupProviderFactory = new LookupProviderFactory();
+            LookupProviderHost lookupProvider = new LookupProviderHost(lookupProviderFactory, settings.Dictionary);
             AltKeyMonitor altMonitor = new AltKeyMonitor();
 
             _runtime = new AppRuntime(

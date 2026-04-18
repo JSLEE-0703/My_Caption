@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Runtime.Serialization;
 using System.Windows;
 
@@ -17,6 +19,9 @@ namespace MyCaption.Core.Models
 
         [DataMember]
         public TranslationSettings Translation { get; set; }
+
+        [DataMember]
+        public DictionarySettings Dictionary { get; set; }
 
         public AppSettings()
         {
@@ -45,16 +50,29 @@ namespace MyCaption.Core.Models
                 Translation = new TranslationSettings();
             }
 
+            if (Dictionary == null)
+            {
+                Dictionary = new DictionarySettings();
+            }
+
             Overlay.ApplyDefaults();
             LiveCaptions.ApplyDefaults();
             Interaction.ApplyDefaults();
             Translation.ApplyDefaults();
+            Dictionary.ApplyDefaults();
         }
     }
 
     [DataContract]
     public sealed class OverlaySettings
     {
+        private bool? _showTranslationTextValue;
+
+        public OverlaySettings()
+        {
+            _showTranslationTextValue = true;
+        }
+
         [DataMember]
         public double Left { get; set; }
 
@@ -82,6 +100,19 @@ namespace MyCaption.Core.Models
         [DataMember]
         public bool Topmost { get; set; }
 
+        public bool ShowTranslationText
+        {
+            get { return !_showTranslationTextValue.HasValue || _showTranslationTextValue.Value; }
+            set { _showTranslationTextValue = value; }
+        }
+
+        [DataMember(Name = "ShowTranslationText", EmitDefaultValue = false)]
+        private bool? ShowTranslationTextValue
+        {
+            get { return _showTranslationTextValue; }
+            set { _showTranslationTextValue = value; }
+        }
+
         public void ApplyDefaults()
         {
             if (Width <= 0)
@@ -107,6 +138,11 @@ namespace MyCaption.Core.Models
             if (BackgroundOpacity <= 0)
             {
                 BackgroundOpacity = 0.88;
+            }
+
+            if (!_showTranslationTextValue.HasValue)
+            {
+                _showTranslationTextValue = true;
             }
 
             Topmost = true;
@@ -181,6 +217,27 @@ namespace MyCaption.Core.Models
     [DataContract]
     public sealed class TranslationSettings
     {
+        private bool? _enabledValue;
+
+        public TranslationSettings()
+        {
+            _enabledValue = true;
+            ConfigPath = string.Empty;
+        }
+
+        public bool Enabled
+        {
+            get { return !_enabledValue.HasValue || _enabledValue.Value; }
+            set { _enabledValue = value; }
+        }
+
+        [DataMember(Name = "Enabled", EmitDefaultValue = false)]
+        private bool? EnabledValue
+        {
+            get { return _enabledValue; }
+            set { _enabledValue = value; }
+        }
+
         [DataMember]
         public string ProviderName { get; set; }
 
@@ -190,8 +247,16 @@ namespace MyCaption.Core.Models
         [DataMember]
         public string TargetLanguage { get; set; }
 
+        [DataMember]
+        public string ConfigPath { get; set; }
+
         public void ApplyDefaults()
         {
+            if (!_enabledValue.HasValue)
+            {
+                _enabledValue = true;
+            }
+
             if (string.IsNullOrWhiteSpace(ProviderName))
             {
                 ProviderName = "Stub";
@@ -205,6 +270,42 @@ namespace MyCaption.Core.Models
             if (string.IsNullOrWhiteSpace(TargetLanguage))
             {
                 TargetLanguage = "zh-CN";
+            }
+
+            if (ConfigPath == null)
+            {
+                ConfigPath = string.Empty;
+            }
+        }
+    }
+
+    [DataContract]
+    public sealed class DictionarySettings
+    {
+        [DataMember]
+        public string ProviderName { get; set; }
+
+        [DataMember]
+        public string DictionaryFilePath { get; set; }
+
+        [DataMember]
+        public string MdictExecutablePath { get; set; }
+
+        public void ApplyDefaults()
+        {
+            if (string.IsNullOrWhiteSpace(ProviderName))
+            {
+                ProviderName = "JsonFile";
+            }
+
+            if (string.IsNullOrWhiteSpace(DictionaryFilePath))
+            {
+                DictionaryFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dictionary.json");
+            }
+
+            if (MdictExecutablePath == null)
+            {
+                MdictExecutablePath = string.Empty;
             }
         }
     }

@@ -9,131 +9,204 @@
         Background="#11161B"
         WindowStartupLocation="CenterScreen"
         FontFamily="Bahnschrift">
-    <Grid Margin="18">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly">
+        <Grid Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="18" CornerRadius="22" Background="#1C232B" BorderBrush="#2F3B46" BorderThickness="1">
-            <Grid>
+            <Border Grid.Row="0" Padding="18" CornerRadius="22" Background="#1C232B" BorderBrush="#2F3B46" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock FontSize="31" FontWeight="SemiBold" Foreground="#F3F2EA" Text="My Caption" />
+                        <TextBlock Margin="0,8,0,0" Foreground="#B9C3CC" FontSize="14" TextWrapping="Wrap"
+                                   Text="Windows Live Captions capture + low-distraction overlay + Alt-only interaction. Translation and lookup stay pluggable so the core loop remains fast and stable." />
+                    </StackPanel>
+                    <Border Grid.Column="1"
+                            Width="180"
+                            Padding="12,8"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            CornerRadius="16"
+                            Background="#102E3A">
+                        <TextBlock Foreground="#8FE2D6"
+                                   FontSize="13"
+                                   Text="{Binding StatusBadgeText}"
+                                   TextAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" Margin="0,16,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock FontSize="31" FontWeight="SemiBold" Foreground="#F3F2EA" Text="My Caption" />
-                    <TextBlock Margin="0,8,0,0" Foreground="#B9C3CC" FontSize="14" TextWrapping="Wrap"
-                               Text="Windows Live Captions capture + low-distraction overlay + Alt-only interaction. Translation and lookup stay pluggable so the core loop remains fast and stable." />
-                </StackPanel>
-                <Border Grid.Column="1"
-                        Width="180"
-                        Padding="12,8"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        CornerRadius="16"
-                        Background="#102E3A">
-                    <TextBlock Foreground="#8FE2D6"
-                               FontSize="13"
-                               Text="{Binding StatusBadgeText}"
-                               TextAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
+                <Border Margin="0,0,10,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Pipeline" />
+                        <TextBlock Margin="0,12,0,0" FontSize="13" Foreground="#B9C3CC" Text="{Binding ProviderText}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,0" FontSize="13" Foreground="#B9C3CC" Text="{Binding LookupProviderText}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,0" FontSize="12" Foreground="#8FE2D6" Text="{Binding LookupStatusText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Margin="10,0,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Interaction" />
+                        <TextBlock Margin="0,12,0,0" FontSize="13" Foreground="#B9C3CC"
+                                   Text="Default state is click-through. Hold Alt to temporarily enter interaction mode, drag the overlay, or click an English word to open the dictionary popup." />
+                    </StackPanel>
                 </Border>
             </Grid>
-        </Border>
 
-        <Grid Grid.Row="1" Margin="0,16,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Margin="0,0,10,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
+            <Border Grid.Row="2" Margin="0,16,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
                 <StackPanel>
-                    <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Pipeline" />
-                    <TextBlock Margin="0,12,0,0" FontSize="13" Foreground="#B9C3CC" Text="{Binding ProviderText}" TextWrapping="Wrap" />
-                    <TextBlock Margin="0,8,0,0" FontSize="13" Foreground="#B9C3CC" Text="{Binding LookupProviderText}" TextWrapping="Wrap" />
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Controls" />
+                    <WrapPanel Margin="0,14,0,0">
+                        <Button x:Name="StartStopButton" Width="170" Height="36" Margin="0,0,12,12" Click="StartStopButton_Click"
+                                Background="#2C645D" Foreground="#F4FFF9" BorderThickness="0"
+                                Content="{Binding StartStopButtonText}" />
+                        <Button x:Name="OverlayToggleButton" Width="170" Height="36" Margin="0,0,12,12" Click="OverlayToggleButton_Click"
+                                Background="#32404D" Foreground="#F3F2EA" BorderThickness="0" Content="Hide Overlay" />
+                        <Button Width="170" Height="36" Margin="0,0,12,12" Click="ResetOverlayButton_Click"
+                                Background="#32404D" Foreground="#F3F2EA" BorderThickness="0" Content="Reset Overlay Position" />
+                    </WrapPanel>
+                    <TextBlock Margin="0,2,0,0"
+                               Foreground="#B9C3CC"
+                               FontSize="12"
+                               Text="{Binding StatusText}"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
-            <Border Grid.Column="1" Margin="10,0,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Interaction" />
-                    <TextBlock Margin="0,12,0,0" FontSize="13" Foreground="#B9C3CC"
-                               Text="Default state is click-through. Hold Alt to temporarily enter interaction mode, drag the overlay, or click an English word." />
-                </StackPanel>
+
+            <Border Grid.Row="3" Margin="0,16,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="0,0,14,0">
+                        <CheckBox x:Name="OriginalOnTopCheckBox" Foreground="#F3F2EA" IsChecked="{Binding OriginalOnTop}"
+                                  Checked="OriginalOnTopCheckBox_Changed" Unchecked="OriginalOnTopCheckBox_Changed"
+                                  Content="Show original text above translation" />
+                        <CheckBox x:Name="HideOriginalWindowCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
+                                  IsChecked="{Binding HideOriginalLiveCaptions}"
+                                  Checked="HideOriginalWindowCheckBox_Changed" Unchecked="HideOriginalWindowCheckBox_Changed"
+                                  Content="Hide built-in Live Captions after attach" />
+                        <CheckBox x:Name="ShowTranslationTextCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
+                                  IsChecked="{Binding ShowTranslationText}"
+                                  Checked="ShowTranslationTextCheckBox_Changed" Unchecked="ShowTranslationTextCheckBox_Changed"
+                                  Content="Show translation text in overlay" />
+                        <TextBlock Margin="0,16,0,0" Foreground="#F3F2EA" Text="Lookup provider" />
+                        <ComboBox x:Name="LookupProviderComboBox"
+                                  Margin="0,8,0,0"
+                                  MinHeight="30"
+                                  Background="#11161B"
+                                  BorderBrush="#32404D"
+                                  Foreground="#E6ECE8"
+                                  SelectionChanged="LookupProviderComboBox_SelectionChanged">
+                            <ComboBoxItem Tag="JsonFile" Content="JSON file" />
+                            <ComboBoxItem Tag="MdictCli" Content="MDict (.mdx)" />
+                        </ComboBox>
+                        <TextBlock Margin="0,16,0,0" Foreground="#F3F2EA" Text="Dictionary source" />
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DictionaryPathTextBox"
+                                     MinHeight="30"
+                                     Padding="8,5"
+                                     Background="#11161B"
+                                     BorderBrush="#32404D"
+                                     Foreground="#E6ECE8"
+                                     Text="{Binding DictionaryFilePath, Mode=OneWay}"
+                                     LostFocus="DictionaryPathTextBox_LostFocus"
+                                     KeyDown="DictionaryPathTextBox_KeyDown" />
+                            <Button Grid.Column="1"
+                                    Width="88"
+                                    Height="30"
+                                    Margin="10,0,0,0"
+                                    Click="BrowseDictionaryButton_Click"
+                                    Background="#32404D"
+                                    Foreground="#F3F2EA"
+                                    BorderThickness="0"
+                                    Content="Browse..." />
+                        </Grid>
+                        <StackPanel x:Name="MdictExecutablePanel" Margin="0,16,0,0">
+                            <TextBlock Foreground="#F3F2EA" Text="mdict executable" />
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="MdictExecutablePathTextBox"
+                                         MinHeight="30"
+                                         Padding="8,5"
+                                         Background="#11161B"
+                                         BorderBrush="#32404D"
+                                         Foreground="#E6ECE8"
+                                         Text="{Binding MdictExecutablePath, Mode=OneWay}"
+                                         LostFocus="MdictExecutablePathTextBox_LostFocus"
+                                         KeyDown="MdictExecutablePathTextBox_KeyDown" />
+                                <Button Grid.Column="1"
+                                        Width="88"
+                                        Height="30"
+                                        Margin="10,0,0,0"
+                                        Click="BrowseMdictExecutableButton_Click"
+                                        Background="#32404D"
+                                        Foreground="#F3F2EA"
+                                        BorderThickness="0"
+                                        Content="Browse..." />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                        <TextBlock Foreground="#F3F2EA" Text="Original font size" />
+                        <Slider x:Name="FontSizeSlider" Margin="0,8,0,0" Minimum="18" Maximum="40"
+                                SmallChange="1" LargeChange="2" Value="{Binding FontSize}"
+                                ValueChanged="FontSizeSlider_ValueChanged" />
+                        <TextBlock Margin="0,12,0,0" Foreground="#F3F2EA" Text="Overlay background opacity" />
+                        <Slider x:Name="OpacitySlider" Margin="0,8,0,0" Minimum="0.35" Maximum="1"
+                                SmallChange="0.05" LargeChange="0.1" Value="{Binding BackgroundOpacity}"
+                                ValueChanged="OpacitySlider_ValueChanged" />
+                    </StackPanel>
+                </Grid>
             </Border>
-        </Grid>
 
-        <Border Grid.Row="2" Margin="0,16,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
-            <StackPanel>
-                <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Controls" />
-                <WrapPanel Margin="0,14,0,0">
-                    <Button x:Name="StartStopButton" Width="170" Height="36" Margin="0,0,12,12" Click="StartStopButton_Click"
-                            Background="#2C645D" Foreground="#F4FFF9" BorderThickness="0"
-                            Content="{Binding StartStopButtonText}" />
-                    <Button x:Name="OverlayToggleButton" Width="170" Height="36" Margin="0,0,12,12" Click="OverlayToggleButton_Click"
-                            Background="#32404D" Foreground="#F3F2EA" BorderThickness="0" Content="Hide Overlay" />
-                    <Button Width="170" Height="36" Margin="0,0,12,12" Click="ResetOverlayButton_Click"
-                            Background="#32404D" Foreground="#F3F2EA" BorderThickness="0" Content="Reset Overlay Position" />
-                </WrapPanel>
-                <TextBlock Margin="0,2,0,0"
-                           Foreground="#B9C3CC"
-                           FontSize="12"
-                           Text="{Binding StatusText}"
-                           TextWrapping="NoWrap"
-                           TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-        </Border>
-
-        <Border Grid.Row="3" Margin="0,16,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
-            <Grid>
+            <Grid Grid.Row="4" Margin="0,16,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Margin="0,0,14,0">
-                    <CheckBox x:Name="OriginalOnTopCheckBox" Foreground="#F3F2EA" IsChecked="{Binding OriginalOnTop}"
-                              Checked="OriginalOnTopCheckBox_Changed" Unchecked="OriginalOnTopCheckBox_Changed"
-                              Content="Show original text above translation" />
-                    <CheckBox x:Name="HideOriginalWindowCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
-                              IsChecked="{Binding HideOriginalLiveCaptions}"
-                              Checked="HideOriginalWindowCheckBox_Changed" Unchecked="HideOriginalWindowCheckBox_Changed"
-                              Content="Hide built-in Live Captions after attach" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                    <TextBlock Foreground="#F3F2EA" Text="Original font size" />
-                    <Slider x:Name="FontSizeSlider" Margin="0,8,0,0" Minimum="18" Maximum="40"
-                            SmallChange="1" LargeChange="2" Value="{Binding FontSize}"
-                            ValueChanged="FontSizeSlider_ValueChanged" />
-                    <TextBlock Margin="0,12,0,0" Foreground="#F3F2EA" Text="Overlay background opacity" />
-                    <Slider x:Name="OpacitySlider" Margin="0,8,0,0" Minimum="0.35" Maximum="1"
-                            SmallChange="0.05" LargeChange="0.1" Value="{Binding BackgroundOpacity}"
-                            ValueChanged="OpacitySlider_ValueChanged" />
-                </StackPanel>
+                <Border Margin="0,0,10,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Current Original" />
+                        <TextBlock Margin="0,12,0,0" Foreground="#E6ECE8" FontSize="20" TextWrapping="Wrap" Text="{Binding PreviewOriginal}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Margin="10,0,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Current Translation" />
+                        <TextBlock Margin="0,12,0,0" Foreground="#F5D89F" FontSize="18" TextWrapping="Wrap" Text="{Binding PreviewTranslation}" />
+                    </StackPanel>
+                </Border>
             </Grid>
-        </Border>
-
-        <Grid Grid.Row="4" Margin="0,16,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Margin="0,0,10,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Current Original" />
-                    <TextBlock Margin="0,12,0,0" Foreground="#E6ECE8" FontSize="20" TextWrapping="Wrap" Text="{Binding PreviewOriginal}" />
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="1" Margin="10,0,0,0" Padding="16" CornerRadius="18" Background="#171D24" BorderBrush="#29323A" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Current Translation" />
-                    <TextBlock Margin="0,12,0,0" Foreground="#F5D89F" FontSize="18" TextWrapping="Wrap" Text="{Binding PreviewTranslation}" />
-                </StackPanel>
-            </Border>
         </Grid>
-    </Grid>
+    </ScrollViewer>
 </Window>
