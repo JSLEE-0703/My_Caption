@@ -15,8 +15,49 @@ Current milestone:
 
 Current provider behavior:
 
-- Translation provider is still a stub that echoes the source text
+- Translation provider supports:
+  - `Stub` for echo testing
+  - `External CLI` for local translators such as Argos Translate
+  - official HTTP APIs for `DeepL`, `Azure Translator`, and `Google Cloud Translation`
 - Lookup provider loads a local `dictionary.json`, seeds a starter file on first run, and supports a configurable dictionary path in the control panel
+
+Argos Translate setup:
+
+- The simplest local offline setup is to use the built-in `External CLI` provider together with `tools/argos_translate_stdin.py`
+- The bridge script reads source text from `stdin`, normalizes language tags such as `zh-CN`, and writes translated text to `stdout`
+- The script is designed to work with a Python environment that already has `argostranslate` installed and an `en -> zh` language package available
+
+Recommended control panel values for Argos Translate:
+
+```text
+Translation provider: External CLI
+Executable path: <your-python-path>\python.exe
+Arguments template: <project-root>\tools\argos_translate_stdin.py --from {from} --to {to}
+Source language: en
+Target language: zh-CN
+```
+
+Recommended validation command:
+
+```powershell
+'Hello, this is a test.' | <your-python-path>\python.exe <project-root>\tools\argos_translate_stdin.py --from en --to zh
+```
+
+Official API setup:
+
+- `DeepL`:
+  - Provider: `DeepL API`
+  - Default URL: `https://api-free.deepl.com/v2/translate`
+  - Required field: `API key`
+- `Azure Translator`:
+  - Provider: `Azure Translator`
+  - Default URL: `https://api.cognitive.microsofttranslator.com`
+  - Required field: `API key`
+  - Optional field: `Resource region`
+- `Google Cloud Translation`:
+  - Provider: `Google Cloud Translation`
+  - Default URL: `https://translation.googleapis.com/language/translate/v2`
+  - Required field: `API key`
 
 MDX import workflow:
 
@@ -31,7 +72,7 @@ powershell -ExecutionPolicy Bypass -File 'D:\My_Caption\tools\import-mdx.ps1' `
   -MdxPath 'F:\BaiduNetdiskDownload\新牛津英汉双解大词典\新牛津英汉双解大词典.mdx' `
   -OutputJsonPath 'F:\BaiduNetdiskDownload\新牛津英汉双解大词典\dictionary.json' `
   -ExtractorPath 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' `
-  -ExtractorArguments '-ExecutionPolicy Bypass -File "D:\My_Caption\tools\extract-mdict-utils.ps1" "{mdx}" "{out}" "C:\Users\76341\.conda\envs\herobot_env\Scripts\mdict.exe"'
+  -ExtractorArguments '-ExecutionPolicy Bypass -File "<project-root>\tools\extract-mdict-utils.ps1" "{mdx}" "{out}" "<your-mdict-path>\mdict.exe"'
 ```
 
 Build on this machine:

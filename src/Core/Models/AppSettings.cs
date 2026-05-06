@@ -223,6 +223,11 @@ namespace MyCaption.Core.Models
         {
             _enabledValue = true;
             ConfigPath = string.Empty;
+            ExecutablePath = string.Empty;
+            ArgumentsTemplate = string.Empty;
+            ApiUrl = string.Empty;
+            ApiKey = string.Empty;
+            ApiRegion = string.Empty;
         }
 
         public bool Enabled
@@ -250,6 +255,21 @@ namespace MyCaption.Core.Models
         [DataMember]
         public string ConfigPath { get; set; }
 
+        [DataMember]
+        public string ExecutablePath { get; set; }
+
+        [DataMember]
+        public string ArgumentsTemplate { get; set; }
+
+        [DataMember]
+        public string ApiUrl { get; set; }
+
+        [DataMember]
+        public string ApiKey { get; set; }
+
+        [DataMember]
+        public string ApiRegion { get; set; }
+
         public void ApplyDefaults()
         {
             if (!_enabledValue.HasValue)
@@ -275,6 +295,31 @@ namespace MyCaption.Core.Models
             if (ConfigPath == null)
             {
                 ConfigPath = string.Empty;
+            }
+
+            if (ExecutablePath == null)
+            {
+                ExecutablePath = string.Empty;
+            }
+
+            if (ArgumentsTemplate == null)
+            {
+                ArgumentsTemplate = string.Empty;
+            }
+
+            if (ApiUrl == null)
+            {
+                ApiUrl = string.Empty;
+            }
+
+            if (ApiKey == null)
+            {
+                ApiKey = string.Empty;
+            }
+
+            if (ApiRegion == null)
+            {
+                ApiRegion = string.Empty;
             }
         }
     }
