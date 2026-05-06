@@ -20,7 +20,7 @@ namespace MyCaption.Core.Translation
         string ApiRegion { get; }
     }
 
-    public sealed class TranslationProviderHost : ITranslationProvider
+    public sealed class TranslationProviderHost : ITranslationProvider, IDisposable
     {
         private readonly object _syncRoot;
         private readonly ITranslationProviderFactory _factory;
@@ -248,6 +248,7 @@ namespace MyCaption.Core.Translation
         public void Reload()
         {
             ITranslationProvider provider = _factory.Create(_settings);
+            ITranslationProvider previousProvider;
             ITranslationProviderStatus status = provider as ITranslationProviderStatus;
             string statusText = status != null ? status.StatusSummary : provider.Description;
             string executablePath = status != null ? status.ExecutablePath : _settings.ExecutablePath;
@@ -258,6 +259,7 @@ namespace MyCaption.Core.Translation
 
             lock (_syncRoot)
             {
+                previousProvider = _provider;
                 _provider = provider;
                 _statusText = statusText ?? string.Empty;
                 _executablePath = executablePath ?? string.Empty;
@@ -272,10 +274,39 @@ namespace MyCaption.Core.Translation
                 _settings.ApiRegion = _apiRegion;
             }
 
+            DisposeProvider(previousProvider, provider);
+
             EventHandler handler = ProviderStatusChanged;
             if (handler != null)
             {
                 handler(this, EventArgs.Empty);
+            }
+        }
+
+        public void Dispose()
+        {
+            ITranslationProvider provider;
+
+            lock (_syncRoot)
+            {
+                provider = _provider;
+                _provider = null;
+            }
+
+            DisposeProvider(provider, null);
+        }
+
+        private static void DisposeProvider(ITranslationProvider provider, ITranslationProvider replacement)
+        {
+            if (provider == null || object.ReferenceEquals(provider, replacement))
+            {
+                return;
+            }
+
+            IDisposable disposable = provider as IDisposable;
+            if (disposable != null)
+            {
+                disposable.Dispose();
             }
         }
     }
