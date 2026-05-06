@@ -15,6 +15,7 @@ namespace MyCaption.Runtime
     public sealed class AppRuntime : IDisposable
     {
         private readonly object _lookupSyncRoot;
+        private readonly object _translationSyncRoot;
         private readonly AppSettings _settings;
         private readonly SettingsStore _settingsStore;
         private readonly LiveCaptionsCaptureService _captureService;
@@ -26,6 +27,7 @@ namespace MyCaption.Runtime
         private readonly Dispatcher _dispatcher;
         private CancellationTokenSource _lookupCancellationTokenSource;
         private int _lookupRequestVersion;
+        private string _currentDisplayText;
 
         public AppRuntime(
             AppSettings settings,
@@ -39,6 +41,7 @@ namespace MyCaption.Runtime
             Dispatcher dispatcher)
         {
             _lookupSyncRoot = new object();
+            _translationSyncRoot = new object();
             _settings = settings;
             _settingsStore = settingsStore;
             _captureService = captureService;
@@ -48,6 +51,7 @@ namespace MyCaption.Runtime
             _lookupProvider = lookupProvider;
             _altMonitor = altMonitor;
             _dispatcher = dispatcher;
+            _currentDisplayText = string.Empty;
 
             Overlay = new OverlayViewModel();
             Overlay.OriginalFontSize = _settings.Overlay.OriginalFontSize;
@@ -395,13 +399,18 @@ namespace MyCaption.Runtime
 
             var tokens = CaptionStabilizer.Tokenize(update.DisplayText);
 
+            lock (_translationSyncRoot)
+            {
+                _currentDisplayText = update.DisplayText ?? string.Empty;
+            }
+
             _dispatcher.BeginInvoke(new Action(delegate
             {
                 Overlay.UpdateOriginalText(update.DisplayText, tokens);
                 Panel.PreviewOriginal = update.DisplayText;
             }));
 
-            if (!string.IsNullOrWhiteSpace(update.TranslationRequestText))
+            if (update.IsCommitted && !string.IsNullOrWhiteSpace(update.TranslationRequestText))
             {
                 if (!_settings.Translation.Enabled)
                 {
@@ -422,11 +431,40 @@ namespace MyCaption.Runtime
 
         private void OnTranslationCompleted(object sender, TranslationCompletedEventArgs e)
         {
+            if (e == null || e.Result == null)
+            {
+                return;
+            }
+
+            lock (_translationSyncRoot)
+            {
+                if (!IsTranslationStillRelevant(_currentDisplayText, e.Result.SourceText))
+                {
+                    return;
+                }
+            }
+
             _dispatcher.BeginInvoke(new Action(delegate
             {
                 Overlay.UpdateTranslationText(e.Result.TranslatedText);
                 Panel.PreviewTranslation = e.Result.TranslatedText;
             }));
+        }
+
+        private static bool IsTranslationStillRelevant(string displayText, string sourceText)
+        {
+            if (string.IsNullOrWhiteSpace(displayText) || string.IsNullOrWhiteSpace(sourceText))
+            {
+                return false;
+            }
+
+            if (string.Equals(displayText, sourceText, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return displayText.StartsWith(sourceText, StringComparison.Ordinal) ||
+                sourceText.StartsWith(displayText, StringComparison.Ordinal);
         }
 
         private void OnAltStateChanged(object sender, AltStateChangedEventArgs e)
@@ -522,6 +560,7 @@ namespace MyCaption.Runtime
             _lookupProvider.ProviderStatusChanged -= OnLookupProviderStatusChanged;
             _altMonitor.AltStateChanged -= OnAltStateChanged;
             _translationDispatcher.Dispose();
+            _translationProvider.Dispose();
             _altMonitor.Dispose();
             SaveSettings();
         }
