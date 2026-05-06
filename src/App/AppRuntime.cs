@@ -19,6 +19,7 @@ namespace MyCaption.Runtime
         private readonly SettingsStore _settingsStore;
         private readonly LiveCaptionsCaptureService _captureService;
         private readonly CaptionStabilizer _stabilizer;
+        private readonly TranslationProviderHost _translationProvider;
         private readonly TranslationDispatcher _translationDispatcher;
         private readonly LookupProviderHost _lookupProvider;
         private readonly AltKeyMonitor _altMonitor;
@@ -31,6 +32,7 @@ namespace MyCaption.Runtime
             SettingsStore settingsStore,
             LiveCaptionsCaptureService captureService,
             CaptionStabilizer stabilizer,
+            TranslationProviderHost translationProvider,
             TranslationDispatcher translationDispatcher,
             LookupProviderHost lookupProvider,
             AltKeyMonitor altMonitor,
@@ -41,6 +43,7 @@ namespace MyCaption.Runtime
             _settingsStore = settingsStore;
             _captureService = captureService;
             _stabilizer = stabilizer;
+            _translationProvider = translationProvider;
             _translationDispatcher = translationDispatcher;
             _lookupProvider = lookupProvider;
             _altMonitor = altMonitor;
@@ -54,7 +57,16 @@ namespace MyCaption.Runtime
             Panel = new ControlPanelViewModel();
             Panel.CaptureState = CaptureState.Paused;
             Panel.StatusText = "Press Resume Capture to start listening for Windows Live Captions.";
-            Panel.ProviderText = string.Format("Translation: {0} - {1}", _translationDispatcher.Provider.DisplayName, _translationDispatcher.Provider.Description);
+            Panel.ProviderText = string.Format("Translation: {0}", _translationProvider.DisplayName);
+            Panel.TranslationStatusText = _translationProvider.StatusText;
+            Panel.TranslationProviderName = _settings.Translation.ProviderName;
+            Panel.TranslationSourceLanguage = _settings.Translation.SourceLanguage;
+            Panel.TranslationTargetLanguage = _settings.Translation.TargetLanguage;
+            Panel.TranslationExecutablePath = _translationProvider.ExecutablePath;
+            Panel.TranslationArgumentsTemplate = _translationProvider.ArgumentsTemplate;
+            Panel.TranslationApiUrl = _translationProvider.ApiUrl;
+            Panel.TranslationApiKey = _translationProvider.ApiKey;
+            Panel.TranslationApiRegion = _translationProvider.ApiRegion;
             Panel.LookupProviderText = string.Format("Lookup: {0}", _lookupProvider.DisplayName);
             Panel.LookupStatusText = _lookupProvider.StatusText;
             Panel.DictionaryProviderName = _settings.Dictionary.ProviderName;
@@ -63,6 +75,7 @@ namespace MyCaption.Runtime
             Panel.OverlayVisible = true;
             Panel.OriginalOnTop = _settings.Overlay.OriginalOnTop;
             Panel.HideOriginalLiveCaptions = _settings.LiveCaptions.HideOriginalWindow;
+            Panel.TranslationEnabled = _settings.Translation.Enabled;
             Panel.ShowTranslationText = _settings.Overlay.ShowTranslationText;
             Panel.FontSize = _settings.Overlay.OriginalFontSize;
             Panel.BackgroundOpacity = _settings.Overlay.BackgroundOpacity;
@@ -70,6 +83,7 @@ namespace MyCaption.Runtime
             _captureService.SnapshotCaptured += OnSnapshotCaptured;
             _captureService.StateChanged += OnCaptureStateChanged;
             _translationDispatcher.TranslationCompleted += OnTranslationCompleted;
+            _translationProvider.ProviderStatusChanged += OnTranslationProviderStatusChanged;
             _lookupProvider.ProviderStatusChanged += OnLookupProviderStatusChanged;
             _altMonitor.AltStateChanged += OnAltStateChanged;
         }
@@ -153,6 +167,88 @@ namespace MyCaption.Runtime
             _settings.LiveCaptions.HideOriginalWindow = hideOriginalWindow;
             Panel.HideOriginalLiveCaptions = hideOriginalWindow;
             _captureService.UpdateOriginalWindowVisibility(hideOriginalWindow);
+            SaveSettings();
+        }
+
+        public void UpdateTranslationEnabled(bool enabled)
+        {
+            _settings.Translation.Enabled = enabled;
+            Panel.TranslationEnabled = enabled;
+            if (!enabled)
+            {
+                Overlay.UpdateTranslationText(string.Empty);
+                Panel.PreviewTranslation = string.Empty;
+            }
+
+            SaveSettings();
+        }
+
+        public void UpdateTranslationProviderName(string providerName)
+        {
+            _translationProvider.UpdateProviderName(providerName);
+            _settings.Translation.ProviderName = string.IsNullOrWhiteSpace(providerName) ? "Stub" : providerName.Trim();
+            Panel.TranslationProviderName = _settings.Translation.ProviderName;
+            Panel.TranslationExecutablePath = _translationProvider.ExecutablePath;
+            Panel.TranslationArgumentsTemplate = _translationProvider.ArgumentsTemplate;
+            Panel.TranslationApiUrl = _translationProvider.ApiUrl;
+            Panel.TranslationApiKey = _translationProvider.ApiKey;
+            Panel.TranslationApiRegion = _translationProvider.ApiRegion;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationSourceLanguage(string sourceLanguage)
+        {
+            string normalized = string.IsNullOrWhiteSpace(sourceLanguage) ? "auto" : sourceLanguage.Trim();
+            _settings.Translation.SourceLanguage = normalized;
+            Panel.TranslationSourceLanguage = normalized;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationTargetLanguage(string targetLanguage)
+        {
+            string normalized = string.IsNullOrWhiteSpace(targetLanguage) ? "zh-CN" : targetLanguage.Trim();
+            _settings.Translation.TargetLanguage = normalized;
+            Panel.TranslationTargetLanguage = normalized;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationExecutablePath(string executablePath)
+        {
+            _translationProvider.UpdateExecutablePath(executablePath);
+            _settings.Translation.ExecutablePath = _translationProvider.ExecutablePath;
+            Panel.TranslationExecutablePath = _translationProvider.ExecutablePath;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationArgumentsTemplate(string argumentsTemplate)
+        {
+            _translationProvider.UpdateArgumentsTemplate(argumentsTemplate);
+            _settings.Translation.ArgumentsTemplate = _translationProvider.ArgumentsTemplate;
+            Panel.TranslationArgumentsTemplate = _translationProvider.ArgumentsTemplate;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationApiUrl(string apiUrl)
+        {
+            _translationProvider.UpdateApiUrl(apiUrl);
+            _settings.Translation.ApiUrl = _translationProvider.ApiUrl;
+            Panel.TranslationApiUrl = _translationProvider.ApiUrl;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationApiKey(string apiKey)
+        {
+            _translationProvider.UpdateApiKey(apiKey);
+            _settings.Translation.ApiKey = _translationProvider.ApiKey;
+            Panel.TranslationApiKey = _translationProvider.ApiKey;
+            SaveSettings();
+        }
+
+        public void UpdateTranslationApiRegion(string apiRegion)
+        {
+            _translationProvider.UpdateApiRegion(apiRegion);
+            _settings.Translation.ApiRegion = _translationProvider.ApiRegion;
+            Panel.TranslationApiRegion = _translationProvider.ApiRegion;
             SaveSettings();
         }
 
@@ -354,6 +450,21 @@ namespace MyCaption.Runtime
             }
         }
 
+        private void OnTranslationProviderStatusChanged(object sender, EventArgs e)
+        {
+            _dispatcher.BeginInvoke(new Action(delegate
+            {
+                Panel.ProviderText = string.Format("Translation: {0}", _translationProvider.DisplayName);
+                Panel.TranslationStatusText = _translationProvider.StatusText;
+                Panel.TranslationProviderName = _settings.Translation.ProviderName;
+                Panel.TranslationExecutablePath = _translationProvider.ExecutablePath;
+                Panel.TranslationArgumentsTemplate = _translationProvider.ArgumentsTemplate;
+                Panel.TranslationApiUrl = _translationProvider.ApiUrl;
+                Panel.TranslationApiKey = _translationProvider.ApiKey;
+                Panel.TranslationApiRegion = _translationProvider.ApiRegion;
+            }));
+        }
+
         private void OnLookupProviderStatusChanged(object sender, EventArgs e)
         {
             _dispatcher.BeginInvoke(new Action(delegate
@@ -407,6 +518,7 @@ namespace MyCaption.Runtime
             _captureService.SnapshotCaptured -= OnSnapshotCaptured;
             _captureService.StateChanged -= OnCaptureStateChanged;
             _translationDispatcher.TranslationCompleted -= OnTranslationCompleted;
+            _translationProvider.ProviderStatusChanged -= OnTranslationProviderStatusChanged;
             _lookupProvider.ProviderStatusChanged -= OnLookupProviderStatusChanged;
             _altMonitor.AltStateChanged -= OnAltStateChanged;
             _translationDispatcher.Dispose();
