@@ -9,6 +9,141 @@
         Background="#11161B"
         WindowStartupLocation="CenterScreen"
         FontFamily="Bahnschrift">
+    <Window.Resources>
+        <Style x:Key="ProviderComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#F3F2EA" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ClosedStateButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border x:Name="ClosedStateBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="18" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentPresenter Margin="0,0,8,0"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Left"
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                                        <Path Grid.Column="1"
+                                              Width="10"
+                                              Height="6"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"
+                                              Data="M 0 0 L 5 6 L 10 0"
+                                              Stroke="#57D18C"
+                                              StrokeThickness="1.8"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round" />
+                                    </Grid>
+                                </Border>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,4,0,0"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Background="#11161B"
+                                        BorderBrush="#32404D"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <ScrollViewer MaxHeight="240"
+                                                  CanContentScroll="True">
+                                        <StackPanel IsItemsHost="True"
+                                                    KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="ClosedStateBorder" Property="MinHeight" Value="30" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="ClosedStateBorder" Property="BorderBrush" Value="#57D18C" />
+                            </Trigger>
+                            <Trigger SourceName="ClosedStateButton" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ClosedStateBorder" Property="BorderBrush" Value="#4C6274" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#8A949D" />
+                                <Setter TargetName="ClosedStateBorder" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ProviderComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#F3F2EA" />
+            <Setter Property="Background" Value="#11161B" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="18" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter VerticalAlignment="Center"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                <Path x:Name="SelectedGlyph"
+                                      Grid.Column="1"
+                                      Width="10"
+                                      Height="8"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Right"
+                                      Data="M 0 4 L 3 7 L 10 0"
+                                      Stroke="#57D18C"
+                                      StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#24303A" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#11161B" />
+                                <Setter Property="Foreground" Value="#F3F2EA" />
+                                <Setter TargetName="SelectedGlyph" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
                   CanContentScroll="False"
@@ -123,6 +258,8 @@
                                   Background="#11161B"
                                   BorderBrush="#32404D"
                                   Foreground="#E6ECE8"
+                                  Style="{StaticResource ProviderComboBoxStyle}"
+                                  ItemContainerStyle="{StaticResource ProviderComboBoxItemStyle}"
                                   SelectionChanged="TranslationProviderComboBox_SelectionChanged">
                             <ComboBoxItem Tag="Stub" Content="Stub" />
                             <ComboBoxItem Tag="ExternalCli" Content="External CLI" />
@@ -236,6 +373,8 @@
                                   Background="#11161B"
                                   BorderBrush="#32404D"
                                   Foreground="#E6ECE8"
+                                  Style="{StaticResource ProviderComboBoxStyle}"
+                                  ItemContainerStyle="{StaticResource ProviderComboBoxItemStyle}"
                                   SelectionChanged="LookupProviderComboBox_SelectionChanged">
                             <ComboBoxItem Tag="JsonFile" Content="JSON file" />
                             <ComboBoxItem Tag="MdictCli" Content="MDict (.mdx)" />
