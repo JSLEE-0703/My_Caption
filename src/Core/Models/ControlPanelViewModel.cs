@@ -6,6 +6,15 @@ namespace MyCaption.Core.Models
         private string _providerText;
         private string _lookupProviderText;
         private string _lookupStatusText;
+        private string _translationStatusText;
+        private string _translationProviderName;
+        private string _translationSourceLanguage;
+        private string _translationTargetLanguage;
+        private string _translationExecutablePath;
+        private string _translationArgumentsTemplate;
+        private string _translationApiUrl;
+        private string _translationApiKey;
+        private string _translationApiRegion;
         private string _dictionaryProviderName;
         private string _dictionaryFilePath;
         private string _mdictExecutablePath;
@@ -14,6 +23,7 @@ namespace MyCaption.Core.Models
         private bool _overlayVisible;
         private bool _originalOnTop;
         private bool _hideOriginalLiveCaptions;
+        private bool _translationEnabled;
         private bool _showTranslationText;
         private double _fontSize;
         private double _backgroundOpacity;
@@ -42,6 +52,60 @@ namespace MyCaption.Core.Models
         {
             get { return _lookupStatusText; }
             set { SetProperty(ref _lookupStatusText, value, "LookupStatusText"); }
+        }
+
+        public string TranslationStatusText
+        {
+            get { return _translationStatusText; }
+            set { SetProperty(ref _translationStatusText, value, "TranslationStatusText"); }
+        }
+
+        public string TranslationProviderName
+        {
+            get { return _translationProviderName; }
+            set { SetProperty(ref _translationProviderName, value, "TranslationProviderName"); }
+        }
+
+        public string TranslationSourceLanguage
+        {
+            get { return _translationSourceLanguage; }
+            set { SetProperty(ref _translationSourceLanguage, value, "TranslationSourceLanguage"); }
+        }
+
+        public string TranslationTargetLanguage
+        {
+            get { return _translationTargetLanguage; }
+            set { SetProperty(ref _translationTargetLanguage, value, "TranslationTargetLanguage"); }
+        }
+
+        public string TranslationExecutablePath
+        {
+            get { return _translationExecutablePath; }
+            set { SetProperty(ref _translationExecutablePath, value, "TranslationExecutablePath"); }
+        }
+
+        public string TranslationArgumentsTemplate
+        {
+            get { return _translationArgumentsTemplate; }
+            set { SetProperty(ref _translationArgumentsTemplate, value, "TranslationArgumentsTemplate"); }
+        }
+
+        public string TranslationApiUrl
+        {
+            get { return _translationApiUrl; }
+            set { SetProperty(ref _translationApiUrl, value, "TranslationApiUrl"); }
+        }
+
+        public string TranslationApiKey
+        {
+            get { return _translationApiKey; }
+            set { SetProperty(ref _translationApiKey, value, "TranslationApiKey"); }
+        }
+
+        public string TranslationApiRegion
+        {
+            get { return _translationApiRegion; }
+            set { SetProperty(ref _translationApiRegion, value, "TranslationApiRegion"); }
         }
 
         public string DictionaryProviderName
@@ -105,6 +169,12 @@ namespace MyCaption.Core.Models
         {
             get { return _hideOriginalLiveCaptions; }
             set { SetProperty(ref _hideOriginalLiveCaptions, value, "HideOriginalLiveCaptions"); }
+        }
+
+        public bool TranslationEnabled
+        {
+            get { return _translationEnabled; }
+            set { SetProperty(ref _translationEnabled, value, "TranslationEnabled"); }
         }
 
         public bool ShowTranslationText

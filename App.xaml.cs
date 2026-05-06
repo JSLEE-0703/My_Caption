@@ -27,7 +27,7 @@ namespace MyCaption
                 settings.LiveCaptions.SyncCommitThreshold,
                 settings.LiveCaptions.IdleCommitThreshold);
             ITranslationProviderFactory translationProviderFactory = new TranslationProviderFactory();
-            ITranslationProvider translationProvider = translationProviderFactory.Create(settings.Translation);
+            TranslationProviderHost translationProvider = new TranslationProviderHost(translationProviderFactory, settings.Translation);
             TranslationDispatcher translationDispatcher = new TranslationDispatcher(translationProvider);
             ILookupProviderFactory lookupProviderFactory = new LookupProviderFactory();
             LookupProviderHost lookupProvider = new LookupProviderHost(lookupProviderFactory, settings.Dictionary);
@@ -38,6 +38,7 @@ namespace MyCaption
                 settingsStore,
                 captureService,
                 stabilizer,
+                translationProvider,
                 translationDispatcher,
                 lookupProvider,
                 altMonitor,
