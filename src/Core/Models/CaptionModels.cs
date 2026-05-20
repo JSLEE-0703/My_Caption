@@ -40,11 +40,12 @@ namespace MyCaption.Core.Models
 
     public sealed class TranslationRequest
     {
-        public TranslationRequest(string sourceText, string sourceLanguage, string targetLanguage)
+        public TranslationRequest(string sourceText, string sourceLanguage, string targetLanguage, bool isCommitted)
         {
             SourceText = sourceText;
             SourceLanguage = sourceLanguage;
             TargetLanguage = targetLanguage;
+            IsCommitted = isCommitted;
         }
 
         public string SourceText { get; private set; }
@@ -52,19 +53,24 @@ namespace MyCaption.Core.Models
         public string SourceLanguage { get; private set; }
 
         public string TargetLanguage { get; private set; }
+
+        public bool IsCommitted { get; private set; }
     }
 
     public sealed class TranslationResult
     {
-        public TranslationResult(string sourceText, string translatedText)
+        public TranslationResult(string sourceText, string translatedText, bool isCommitted)
         {
             SourceText = sourceText;
             TranslatedText = translatedText;
+            IsCommitted = isCommitted;
         }
 
         public string SourceText { get; private set; }
 
         public string TranslatedText { get; private set; }
+
+        public bool IsCommitted { get; private set; }
     }
 
     public sealed class LookupMeaning

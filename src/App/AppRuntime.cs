@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using System.Text;
 using MyCaption.Core.Capture;
 using MyCaption.Core.Lookup;
 using MyCaption.Core.Models;
@@ -28,6 +29,8 @@ namespace MyCaption.Runtime
         private CancellationTokenSource _lookupCancellationTokenSource;
         private int _lookupRequestVersion;
         private string _currentDisplayText;
+        private string _lastRenderedTranslationSourceText;
+        private bool _lastRenderedTranslationWasCommitted;
 
         public AppRuntime(
             AppSettings settings,
@@ -52,6 +55,8 @@ namespace MyCaption.Runtime
             _altMonitor = altMonitor;
             _dispatcher = dispatcher;
             _currentDisplayText = string.Empty;
+            _lastRenderedTranslationSourceText = string.Empty;
+            _lastRenderedTranslationWasCommitted = false;
 
             Overlay = new OverlayViewModel();
             Overlay.OriginalFontSize = _settings.Overlay.OriginalFontSize;
@@ -180,6 +185,12 @@ namespace MyCaption.Runtime
             Panel.TranslationEnabled = enabled;
             if (!enabled)
             {
+                lock (_translationSyncRoot)
+                {
+                    _lastRenderedTranslationSourceText = string.Empty;
+                    _lastRenderedTranslationWasCommitted = false;
+                }
+
                 Overlay.UpdateTranslationText(string.Empty);
                 Panel.PreviewTranslation = string.Empty;
             }
@@ -410,7 +421,7 @@ namespace MyCaption.Runtime
                 Panel.PreviewOriginal = update.DisplayText;
             }));
 
-            if (update.IsCommitted && !string.IsNullOrWhiteSpace(update.TranslationRequestText))
+            if (!string.IsNullOrWhiteSpace(update.TranslationRequestText))
             {
                 if (!_settings.Translation.Enabled)
                 {
@@ -425,7 +436,8 @@ namespace MyCaption.Runtime
                 _translationDispatcher.Request(new TranslationRequest(
                     update.TranslationRequestText,
                     _settings.Translation.SourceLanguage,
-                    _settings.Translation.TargetLanguage));
+                    _settings.Translation.TargetLanguage,
+                    update.IsCommitted));
             }
         }
 
@@ -442,6 +454,14 @@ namespace MyCaption.Runtime
                 {
                     return;
                 }
+
+                if (!ShouldApplyTranslationResult(e.Result))
+                {
+                    return;
+                }
+
+                _lastRenderedTranslationSourceText = e.Result.SourceText ?? string.Empty;
+                _lastRenderedTranslationWasCommitted = e.Result.IsCommitted;
             }
 
             _dispatcher.BeginInvoke(new Action(delegate
@@ -465,6 +485,49 @@ namespace MyCaption.Runtime
 
             return displayText.StartsWith(sourceText, StringComparison.Ordinal) ||
                 sourceText.StartsWith(displayText, StringComparison.Ordinal);
+        }
+
+        private bool ShouldApplyTranslationResult(TranslationResult result)
+        {
+            if (result == null)
+            {
+                return false;
+            }
+
+            if (result.IsCommitted)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(_lastRenderedTranslationSourceText))
+            {
+                return true;
+            }
+
+            if (!_lastRenderedTranslationWasCommitted)
+            {
+                return true;
+            }
+
+            string previousSource = _lastRenderedTranslationSourceText;
+            string currentSource = result.SourceText ?? string.Empty;
+
+            if (currentSource.StartsWith(previousSource, StringComparison.Ordinal))
+            {
+                return GetUtf8Length(currentSource) - GetUtf8Length(previousSource) >= 8;
+            }
+
+            if (previousSource.StartsWith(currentSource, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return GetUtf8Length(currentSource) >= 12;
+        }
+
+        private static int GetUtf8Length(string value)
+        {
+            return string.IsNullOrEmpty(value) ? 0 : Encoding.UTF8.GetByteCount(value);
         }
 
         private void OnAltStateChanged(object sender, AltStateChangedEventArgs e)

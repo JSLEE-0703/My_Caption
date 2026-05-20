@@ -405,7 +405,7 @@
                                     Content="Browse..." />
                         </Grid>
                         <StackPanel x:Name="MdictExecutablePanel" Margin="0,16,0,0">
-                            <TextBlock Foreground="#F3F2EA" Text="mdict executable" />
+                            <TextBlock Foreground="#F3F2EA" Text="mdict executable (optional)" />
                             <Grid Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
