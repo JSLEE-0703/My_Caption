@@ -55,7 +55,7 @@ namespace MyCaption.Core.Translation
 
         public Task<TranslationResult> TranslateAsync(TranslationRequest request, CancellationToken cancellationToken)
         {
-            return Task.FromResult(new TranslationResult(request.SourceText, request.SourceText));
+            return Task.FromResult(new TranslationResult(request.SourceText, request.SourceText, request.IsCommitted));
         }
     }
 }

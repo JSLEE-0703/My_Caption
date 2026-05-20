@@ -102,7 +102,7 @@ namespace MyCaption.Core.Translation
 
             if (!string.IsNullOrWhiteSpace(_initializationError))
             {
-                return Task.FromResult(new TranslationResult(request.SourceText, "[translation error] " + _initializationError));
+                return Task.FromResult(new TranslationResult(request.SourceText, "[translation error] " + _initializationError, request.IsCommitted));
             }
 
             return TranslateCoreAsync(request, cancellationToken);
@@ -129,7 +129,7 @@ namespace MyCaption.Core.Translation
                 throw new InvalidOperationException("Unsupported official translation provider.");
             }
 
-            return new TranslationResult(request.SourceText, translatedText);
+            return new TranslationResult(request.SourceText, translatedText, request.IsCommitted);
         }
 
         private string InitializeStatus(out string initializationError)
