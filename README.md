@@ -1,33 +1,166 @@
 # My Caption
 
-Personal Windows subtitle tool built around Windows Live Captions.
+My Caption is a personal Windows subtitle companion built around Windows Live Captions. The application captures caption text from the Live Captions window, stabilizes fast-changing output, optionally translates the stabilized text, and renders the result in a lightweight overlay that supports word lookup.
 
-Current milestone:
+This README is the primary technical document for developers who need to understand, maintain, or extend the project.
 
-- Capture text from Windows Live Captions via UI Automation
-- Stabilize rapidly changing caption text before display/translation
-- Render a low-distraction overlay window
-- Default to click-through mode
-- Hold `Alt` to enter temporary interaction mode
-- Drag/resize the overlay while holding `Alt`
-- Click English words to open a local JSON-backed dictionary popup
-- Keep translation and lookup providers swappable
+## Overview
 
-Current provider behavior:
+Current product goals:
 
-- Translation provider supports:
-  - `Stub` for echo testing
-  - `External CLI` for local translators such as Argos Translate
-  - official HTTP APIs for `DeepL`, `Azure Translator`, and `Google Cloud Translation`
-- Lookup provider loads a local `dictionary.json`, seeds a starter file on first run, and supports a configurable dictionary path in the control panel
+- Read caption text from Windows Live Captions through UI Automation
+- Reduce flicker caused by rapidly changing partial captions
+- Display a low-distraction overlay window over other apps
+- Support optional translation through swappable translation providers
+- Support word lookup through swappable dictionary providers
+- Allow temporary interaction by holding `Alt`
 
-Argos Translate setup:
+Current implementation shape:
 
-- The simplest local offline setup is to use the built-in `External CLI` provider together with `tools/argos_translate_stdin.py`
-- The bridge script reads source text from `stdin`, normalizes language tags such as `zh-CN`, and writes translated text to `stdout`
-- The script is designed to work with a Python environment that already has `argostranslate` installed and an `en -> zh` language package available
+- Desktop UI: WPF on `.NET Framework 4.8`
+- Build style: classic MSBuild project, not SDK-style
+- Main runtime model: a single coordinating `AppRuntime`
+- Primary extension points: translation providers and lookup providers
 
-Recommended control panel values for Argos Translate:
+## Build And Run
+
+Build on this machine:
+
+```powershell
+& 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe' 'D:\My_Caption\MyCaption.csproj' /t:Build /p:Configuration=Debug /p:Platform=x64
+```
+
+Output:
+
+- `D:\My_Caption\bin\Debug\MyCaption.exe`
+
+Notes:
+
+- The repository currently targets `.NET Framework 4.8`.
+- The machine can build with MSBuild even if the newer `.NET SDK` is not installed.
+- A missing `.NET Framework 4.8` targeting pack may still produce warnings on this machine, but the project currently builds successfully.
+
+## Architecture
+
+The codebase follows a layered structure even though it is a small desktop app.
+
+### App And Runtime
+
+- `App.xaml.cs` is the composition root.
+- It loads persisted settings, constructs the capture, stabilization, translation, and lookup services, then passes them into `AppRuntime`.
+- `AppRuntime` is the operational coordinator. It owns the application state exposed to the windows, subscribes to service events, saves settings, and routes user actions back into the underlying services.
+
+### Core
+
+The `src/Core` area contains domain and runtime logic:
+
+- `Capture`: reads the Windows Live Captions window through UI Automation
+- `Stabilization`: turns noisy partial captions into more stable display text
+- `Translation`: provider interfaces, factories, hosts, dispatching, and concrete providers
+- `Lookup`: provider interfaces, factories, hosts, JSON lookup, and MDX lookup
+- `Models`: settings models, view models, and caption-related data models
+
+### Infrastructure
+
+The `src/Infrastructure` area contains environment-specific support:
+
+- `Automation`: access to the Live Captions UI Automation surface
+- `Persistence`: settings storage in `settings.json`
+- `Windows`: keyboard state monitoring and native Win32 helpers
+
+### UI
+
+The `src/UI` area contains WPF windows and interaction code:
+
+- `MainWindow`: control panel and configuration UI
+- `OverlayWindow`: live subtitle display and interaction surface
+- `LookupCardWindow`: dictionary result popup
+
+## End-To-End Runtime Flow
+
+The main execution flow is:
+
+1. `App.xaml.cs` starts the app and loads persisted `AppSettings`.
+2. `App.xaml.cs` builds concrete services:
+   - `LiveCaptionsAutomationClient`
+   - `LiveCaptionsCaptureService`
+   - `CaptionStabilizer`
+   - `TranslationProviderHost`
+   - `TranslationDispatcher`
+   - `LookupProviderHost`
+   - `AltKeyMonitor`
+3. `AppRuntime` initializes the `OverlayViewModel` and `ControlPanelViewModel`, then subscribes to capture, translation, lookup, and keyboard events.
+4. `AppRuntime.Start()` starts the capture loop and the `Alt` key monitor.
+5. `LiveCaptionsCaptureService` polls the Live Captions window and emits caption snapshots.
+6. `CaptionStabilizer` converts noisy incremental text into more stable display text.
+7. `AppRuntime` updates the overlay with original text and optionally asks `TranslationDispatcher` to translate it.
+8. `TranslationDispatcher` invokes the currently selected `ITranslationProvider` asynchronously and raises completion events back to `AppRuntime`.
+9. When the user clicks a word in the overlay, `AppRuntime` routes the request to `LookupProviderHost`, which delegates to the active `ILookupProvider`.
+10. The lookup result is shown in `LookupCardWindow` while the main overlay remains focused on caption display.
+
+Key coordination point:
+
+- `AppRuntime` is the place to start when behavior spans UI, settings, capture state, translation, and lookup at the same time.
+
+## Translation Providers
+
+Translation is defined by the `ITranslationProvider` interface:
+
+```csharp
+public interface ITranslationProvider
+{
+    string DisplayName { get; }
+    string Description { get; }
+    Task<TranslationResult> TranslateAsync(TranslationRequest request, CancellationToken cancellationToken);
+}
+```
+
+The runtime does not talk directly to concrete providers. It talks to `TranslationProviderHost`, which:
+
+- owns the current `TranslationSettings`
+- creates the active provider through `TranslationProviderFactory`
+- reloads the provider whenever a provider-related setting changes
+- exposes provider status and normalized config values back to the UI
+
+Current provider modes:
+
+- `Stub`
+  - Returns predictable output for simple plumbing checks
+  - Useful when testing the runtime without calling external services
+- `ExternalCli`
+  - Runs a local executable or script
+  - Best for offline or self-hosted translation workflows such as Argos Translate
+- `DeepL`, `AzureTranslator`, `GoogleCloud`
+  - Use `OfficialApiTranslationProvider`
+  - Best when translation quality and supported languages matter more than offline behavior
+
+Current translation settings surfaced through the UI:
+
+- `ProviderName`
+- `Enabled`
+- `SourceLanguage`
+- `TargetLanguage`
+- `ExecutablePath`
+- `ArgumentsTemplate`
+- `ApiUrl`
+- `ApiKey`
+- `ApiRegion`
+
+Provider behavior details:
+
+- `TranslationProviderFactory` normalizes executable paths to absolute paths when possible.
+- Official API providers receive default API URLs when the configured URL is empty.
+- `TranslationProviderHost` raises `ProviderStatusChanged` whenever a provider reload changes its effective status or normalized configuration.
+
+### External CLI Setup
+
+The simplest local offline setup uses:
+
+- provider: `External CLI`
+- executable: Python
+- argument template: `tools/argos_translate_stdin.py --from {from} --to {to}`
+
+Recommended control panel values:
 
 ```text
 Translation provider: External CLI
@@ -43,27 +176,81 @@ Recommended validation command:
 'Hello, this is a test.' | <your-python-path>\python.exe <project-root>\tools\argos_translate_stdin.py --from en --to zh
 ```
 
-Official API setup:
+## Lookup Providers
 
-- `DeepL`:
-  - Provider: `DeepL API`
-  - Default URL: `https://api-free.deepl.com/v2/translate`
-  - Required field: `API key`
-- `Azure Translator`:
-  - Provider: `Azure Translator`
-  - Default URL: `https://api.cognitive.microsofttranslator.com`
-  - Required field: `API key`
-  - Optional field: `Resource region`
-- `Google Cloud Translation`:
-  - Provider: `Google Cloud Translation`
-  - Default URL: `https://translation.googleapis.com/language/translate/v2`
-  - Required field: `API key`
+Lookup is defined by the `ILookupProvider` interface:
 
-MDX import workflow:
+```csharp
+public interface ILookupProvider
+{
+    string DisplayName { get; }
+    Task<LookupResult> LookupAsync(string word, CancellationToken cancellationToken);
+}
+```
 
-- `tools/import-mdx.ps1` orchestrates a one-time MDX import into the app's `dictionary.json` shape
-- `tools/extract-mdict-utils.ps1` is a ready-to-use wrapper for `mdict-utils`, which can unpack the encrypted `.mdx` into an intermediate MDict text file
-- The bundled `tools/MdxImportNormalizer` project converts JSONL, TSV, or MDict unpacked text into lookup-ready JSON while preserving `rawHtml` for future richer rendering
+As with translation, the runtime uses a host layer instead of directly binding to one implementation:
+
+- `LookupProviderFactory` selects the concrete lookup provider
+- `LookupProviderHost` owns `DictionarySettings`, reloads providers when settings change, and exposes normalized values and status back to the UI
+
+Current lookup modes:
+
+- `JsonFile`
+  - Loads a local JSON dictionary file
+  - Seeds a starter `dictionary.json` on first run if the file does not exist
+  - Best for predictable local lookup and custom dictionary data
+- `MdictCli`
+  - Queries an `.mdx` dictionary through `mdict_utils`
+  - Best when you want to use an existing MDict dictionary directly
+
+Current lookup settings surfaced through the UI:
+
+- `ProviderName`
+- `DictionaryFilePath`
+- `MdictExecutablePath`
+
+### JSON Dictionary Mode
+
+Behavior:
+
+- Default provider is `JsonFile`.
+- Default dictionary path is `<app-base-directory>\dictionary.json`.
+- `JsonFileLookupProvider` creates a small starter dictionary if the file is missing.
+- Lookup includes simple morphology fallback for common English forms.
+
+### MDict Mode
+
+Current runtime behavior is important:
+
+- Selecting `MdictCli` does not require the user to always hand-configure `mdict executable`.
+- The provider now tries to auto-detect a usable `mdict_utils` runtime first.
+- The `mdict executable` field is an optional override, not a required field.
+- If auto-detection fails, the user can still set a specific executable manually.
+
+In practice, `MdictLookupProvider` tries to work with:
+
+- an explicitly configured `mdict executable` path
+- a runtime located relative to the app directory when available
+- the known local Python environment used by this project on this machine
+
+Status behavior:
+
+- If the `.mdx` path is empty or missing, the provider reports that immediately.
+- If no usable `mdict` runtime can be found, the provider reports that the MDict runtime is unavailable.
+- If the runtime is available, the provider queries metadata and reports a ready status, including `.mdd` sidecar detection when present.
+
+### MDX Import Workflow
+
+The repository also includes a one-time import path for converting MDX data into the JSON dictionary shape:
+
+- `tools/import-mdx.ps1` orchestrates the import flow
+- `tools/extract-mdict-utils.ps1` extracts MDX contents through `mdict-utils`
+- `tools/MdxImportNormalizer` converts intermediate output into the app's JSON lookup format
+
+This import workflow is useful when:
+
+- you want a fully local JSON-backed dictionary for predictable runtime behavior
+- you want to preprocess or normalize data once instead of querying MDX at runtime
 
 Example import command:
 
@@ -75,17 +262,130 @@ powershell -ExecutionPolicy Bypass -File 'D:\My_Caption\tools\import-mdx.ps1' `
   -ExtractorArguments '-ExecutionPolicy Bypass -File "<project-root>\tools\extract-mdict-utils.ps1" "{mdx}" "{out}" "<your-mdict-path>\mdict.exe"'
 ```
 
-Build on this machine:
+## Settings And Persistence
 
-```powershell
-& 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe' 'D:\My_Caption\MyCaption.csproj' /t:Build /p:Configuration=Debug /p:Platform=x64
-```
+Settings are stored in `settings.json` in the application base directory.
 
-Output:
+Persistence behavior:
 
-- `D:\My_Caption\bin\Debug\MyCaption.exe`
+- `SettingsStore.Load()` creates a default settings file if none exists
+- deserialization failures fall back to a new in-memory `AppSettings`
+- `ApplyDefaults()` is called after loading and before saving
 
-Notes:
+Top-level settings groups:
 
-- This implementation uses a `.NET Framework 4.8` WPF project because the current machine has MSBuild but does not have a .NET SDK installed.
-- The runtime architecture still follows the planned layers so it can be migrated to SDK-style `.NET 8` later without rethinking the core flow.
+- `Overlay`
+  - overlay bounds, font sizes, opacity, display ordering, translation visibility
+- `LiveCaptions`
+  - polling interval, auto-launch behavior, original window visibility, stabilization thresholds
+- `Interaction`
+  - click-through and `Alt` interaction defaults
+- `Translation`
+  - active provider and provider-specific translation config
+- `Dictionary`
+  - active lookup provider, dictionary path, and optional MDict runtime override
+
+Save behavior:
+
+- `AppRuntime` is responsible for persisting user-facing settings changes.
+- Settings are saved immediately when runtime update methods commit a change.
+- There is no separate deferred save queue or profile system today.
+
+Operational implication:
+
+- If you change configuration behavior, check both the settings model defaults and the corresponding `AppRuntime.Update...` method to keep persistence and UI state aligned.
+
+## Extensibility Guide
+
+### Adding A Translation Provider
+
+To add a new translation provider:
+
+1. Implement `ITranslationProvider`.
+2. If the provider exposes configuration or status details to the control panel, also follow the internal status shape expected by `TranslationProviderHost`.
+3. Update `TranslationProviderFactory` so it can instantiate the new provider from `TranslationSettings.ProviderName`.
+4. Update the control panel UI so the provider can be selected and configured.
+5. Confirm that `AppRuntime` persists any new provider-specific settings you introduce.
+
+Start reading from:
+
+- `src/Core/Translation/ITranslationProvider.cs`
+- `src/Core/Translation/TranslationProviderFactory.cs`
+- `src/Core/Translation/TranslationProviderHost.cs`
+- `src/UI/MainWindow/MainWindow.xaml.cs`
+
+### Adding A Lookup Provider
+
+To add a new lookup provider:
+
+1. Implement `ILookupProvider`.
+2. If the provider needs to surface normalized paths or provider-specific status, follow the host status pattern already used by lookup.
+3. Update `LookupProviderFactory` so it can create the new provider from `DictionarySettings.ProviderName`.
+4. Extend the control panel UI to select and configure the provider.
+5. Make sure `AppRuntime` persists any new lookup-related settings.
+
+Start reading from:
+
+- `src/Core/Lookup/ILookupProvider.cs`
+- `src/Core/Lookup/LookupProviderFactory.cs`
+- `src/UI/MainWindow/MainWindow.xaml.cs`
+
+### Changing Runtime Or UI Behavior
+
+Use these entry points:
+
+- cross-cutting runtime behavior: `src/App/AppRuntime.cs`
+- control panel behavior: `src/UI/MainWindow/MainWindow.xaml.cs`
+- overlay interaction and display: `src/UI/Overlay/OverlayWindow.xaml.cs`
+- caption acquisition issues: `src/Core/Capture/LiveCaptionsCaptureService.cs`
+- subtitle stability issues: `src/Core/Stabilization/CaptionStabilizer.cs`
+
+## Debugging Notes
+
+When debugging issues, it helps to separate them by subsystem:
+
+- No captions arriving:
+  - check Windows Live Captions state
+  - inspect `LiveCaptionsAutomationClient` and `LiveCaptionsCaptureService`
+- Captions are noisy or unstable:
+  - inspect `CaptionStabilizer`
+  - review `SyncCommitThreshold` and `IdleCommitThreshold`
+- Translation not appearing:
+  - confirm `TranslationEnabled`
+  - inspect provider status shown in the control panel
+  - validate provider-specific config such as executable path or API key
+- Dictionary popup is empty:
+  - verify the active lookup provider
+  - verify the dictionary file path
+  - for MDX, verify that the runtime can auto-detect or use the configured `mdict` override
+
+## Known Limitations
+
+- The application depends on the Windows Live Captions UI surface remaining discoverable through UI Automation.
+- The project currently targets WPF on `.NET Framework 4.8`, which keeps the build story tied to classic MSBuild on this machine.
+- Settings are stored as a single local JSON file with immediate saves; there is no profile system, sync layer, or config migration framework.
+- Provider extensibility exists, but provider-specific configuration still lives in a relatively manual control-panel flow.
+- Lookup morphology fallback is intentionally lightweight and does not aim to be a full linguistic engine.
+
+## Next Steps
+
+Highest-value follow-up work currently identified in the repository:
+
+1. Replace `StubTranslationProvider` with a stronger real local translation path where appropriate.
+2. Improve dictionary morphology fallback and support richer entry shapes.
+3. Add better sentence segmentation for mixed English and Chinese streams.
+4. Improve settings UX for language direction and provider-specific configuration.
+5. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
+
+## File Map
+
+Useful starting points:
+
+- `App.xaml.cs`: composition root
+- `src/App/AppRuntime.cs`: main runtime coordinator
+- `src/Core/Models/AppSettings.cs`: persisted settings model and defaults
+- `src/Core/Translation/*`: translation interfaces, hosts, factories, and providers
+- `src/Core/Lookup/*`: lookup interfaces, hosts, factories, and providers
+- `src/UI/MainWindow/*`: control panel UI and provider settings interactions
+- `src/UI/Overlay/*`: overlay rendering and word lookup interaction
+

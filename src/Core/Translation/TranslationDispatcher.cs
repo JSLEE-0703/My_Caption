@@ -79,7 +79,7 @@ namespace MyCaption.Core.Translation
             }
             catch (Exception ex)
             {
-                result = new TranslationResult(request.SourceText, "[translation error] " + ex.Message);
+                result = new TranslationResult(request.SourceText, "[translation error] " + ex.Message, request.IsCommitted);
             }
 
             lock (_syncRoot)

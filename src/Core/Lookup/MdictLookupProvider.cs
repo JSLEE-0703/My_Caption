@@ -21,8 +21,8 @@ namespace MyCaption.Core.Lookup
         public MdictLookupProvider(string dictionaryFilePath, string mdictExecutablePath)
         {
             _dictionaryFilePath = dictionaryFilePath ?? string.Empty;
-            _mdictExecutablePath = mdictExecutablePath ?? string.Empty;
-            _pythonExecutablePath = ResolvePythonExecutablePath(_mdictExecutablePath);
+            _mdictExecutablePath = ResolveMdictExecutablePath(mdictExecutablePath);
+            _pythonExecutablePath = ResolvePythonExecutablePath(mdictExecutablePath, _mdictExecutablePath);
             _statusSummary = InitializeStatus(out _loadFailureMessage);
         }
 
@@ -96,15 +96,21 @@ namespace MyCaption.Core.Lookup
                 return loadFailureMessage;
             }
 
-            if (string.IsNullOrWhiteSpace(_mdictExecutablePath))
+            bool hasPythonRuntime = !string.IsNullOrWhiteSpace(_pythonExecutablePath) && File.Exists(_pythonExecutablePath);
+            bool hasExecutableRuntime = !string.IsNullOrWhiteSpace(_mdictExecutablePath) && File.Exists(_mdictExecutablePath);
+            if (!hasPythonRuntime && !hasExecutableRuntime)
             {
-                loadFailureMessage = "Dictionary file unavailable: mdict executable path is empty.";
+                loadFailureMessage = "Dictionary file unavailable: mdict runtime not found.";
                 return loadFailureMessage;
             }
 
-            if (!File.Exists(_mdictExecutablePath))
+            try
             {
-                loadFailureMessage = "Dictionary file unavailable: mdict executable not found.";
+                RunMdictCommand("--version");
+            }
+            catch (Exception ex)
+            {
+                loadFailureMessage = "Dictionary file unavailable: " + ex.Message;
                 return loadFailureMessage;
             }
 
@@ -245,7 +251,74 @@ namespace MyCaption.Core.Lookup
             return string.Empty;
         }
 
-        private static string ResolvePythonExecutablePath(string mdictExecutablePath)
+        private static string ResolveMdictExecutablePath(string mdictExecutablePath)
+        {
+            foreach (string candidate in GetMdictExecutableCandidates(mdictExecutablePath))
+            {
+                string normalizedCandidate = NormalizePath(candidate);
+                if (!string.IsNullOrWhiteSpace(normalizedCandidate) && File.Exists(normalizedCandidate))
+                {
+                    return normalizedCandidate;
+                }
+            }
+
+            return NormalizePath(mdictExecutablePath);
+        }
+
+        private static string ResolvePythonExecutablePath(string requestedMdictExecutablePath, string resolvedMdictExecutablePath)
+        {
+            foreach (string candidate in GetPythonExecutableCandidates(requestedMdictExecutablePath, resolvedMdictExecutablePath))
+            {
+                string normalizedCandidate = NormalizePath(candidate);
+                if (!string.IsNullOrWhiteSpace(normalizedCandidate) && File.Exists(normalizedCandidate))
+                {
+                    return normalizedCandidate;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static IEnumerable<string> GetMdictExecutableCandidates(string mdictExecutablePath)
+        {
+            if (!string.IsNullOrWhiteSpace(mdictExecutablePath))
+            {
+                yield return mdictExecutablePath;
+            }
+
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            if (!string.IsNullOrWhiteSpace(baseDirectory))
+            {
+                yield return Path.Combine(baseDirectory, "tools", "mdict.exe");
+            }
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(userProfile))
+            {
+                yield return Path.Combine(userProfile, ".conda", "envs", "herobot_env", "Scripts", "mdict.exe");
+            }
+        }
+
+        private static IEnumerable<string> GetPythonExecutableCandidates(string requestedMdictExecutablePath, string resolvedMdictExecutablePath)
+        {
+            if (!string.IsNullOrWhiteSpace(requestedMdictExecutablePath))
+            {
+                yield return BuildEnvironmentPythonPath(requestedMdictExecutablePath);
+            }
+
+            if (!string.IsNullOrWhiteSpace(resolvedMdictExecutablePath))
+            {
+                yield return BuildEnvironmentPythonPath(resolvedMdictExecutablePath);
+            }
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(userProfile))
+            {
+                yield return Path.Combine(userProfile, ".conda", "envs", "herobot_env", "python.exe");
+            }
+        }
+
+        private static string BuildEnvironmentPythonPath(string mdictExecutablePath)
         {
             if (string.IsNullOrWhiteSpace(mdictExecutablePath))
             {
@@ -266,12 +339,34 @@ namespace MyCaption.Core.Lookup
                     return string.Empty;
                 }
 
-                string pythonPath = Path.Combine(environmentDirectory, "python.exe");
-                return File.Exists(pythonPath) ? pythonPath : string.Empty;
+                return Path.Combine(environmentDirectory, "python.exe");
             }
             catch
             {
                 return string.Empty;
+            }
+        }
+
+        private static string NormalizePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                string trimmedPath = path.Trim();
+                if (!Path.IsPathRooted(trimmedPath))
+                {
+                    trimmedPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, trimmedPath);
+                }
+
+                return Path.GetFullPath(trimmedPath);
+            }
+            catch
+            {
+                return path.Trim();
             }
         }
 

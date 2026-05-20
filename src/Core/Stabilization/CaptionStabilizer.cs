@@ -254,8 +254,12 @@ namespace MyCaption.Core.Stabilization
                 return false;
             }
 
-            if (candidate.StartsWith(_lastRequestedText, StringComparison.Ordinal) ||
-                _lastRequestedText.StartsWith(candidate, StringComparison.Ordinal))
+            if (candidate.StartsWith(_lastRequestedText, StringComparison.Ordinal))
+            {
+                return GetUtf8Length(candidate) - GetUtf8Length(_lastRequestedText) < 10;
+            }
+
+            if (_lastRequestedText.StartsWith(candidate, StringComparison.Ordinal))
             {
                 return true;
             }

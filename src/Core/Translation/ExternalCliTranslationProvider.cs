@@ -90,7 +90,7 @@ namespace MyCaption.Core.Translation
 
             if (!string.IsNullOrWhiteSpace(_initializationError))
             {
-                return Task.FromResult(new TranslationResult(request.SourceText, "[translation error] " + _initializationError));
+                return Task.FromResult(new TranslationResult(request.SourceText, "[translation error] " + _initializationError, request.IsCommitted));
             }
 
             return Task.Run(delegate
@@ -98,7 +98,7 @@ namespace MyCaption.Core.Translation
                 string translatedText = _persistentModeEnabled
                     ? ExecutePersistentTranslation(request, cancellationToken)
                     : ExecuteTranslation(request, cancellationToken);
-                return new TranslationResult(request.SourceText, translatedText);
+                return new TranslationResult(request.SourceText, translatedText, request.IsCommitted);
             }, cancellationToken);
         }
 
