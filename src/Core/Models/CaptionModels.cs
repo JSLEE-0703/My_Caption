@@ -88,12 +88,13 @@ namespace MyCaption.Core.Models
 
     public sealed class LookupResult
     {
-        public LookupResult(string word, string phonetic, IList<LookupMeaning> meanings, string example, string statusMessage, bool isFound)
+        public LookupResult(string word, string phonetic, IList<LookupMeaning> meanings, string example, string rawContent, string statusMessage, bool isFound)
         {
             Word = word;
             Phonetic = phonetic;
             Meanings = meanings ?? new List<LookupMeaning>();
             Example = example;
+            RawContent = rawContent;
             StatusMessage = statusMessage;
             IsFound = isFound;
         }
@@ -105,6 +106,8 @@ namespace MyCaption.Core.Models
         public IList<LookupMeaning> Meanings { get; private set; }
 
         public string Example { get; private set; }
+
+        public string RawContent { get; private set; }
 
         public string StatusMessage { get; private set; }
 
