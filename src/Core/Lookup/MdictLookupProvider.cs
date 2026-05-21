@@ -65,12 +65,12 @@ namespace MyCaption.Core.Lookup
             string normalized = NormalizeWord(word);
             if (string.IsNullOrWhiteSpace(normalized))
             {
-                return Task.FromResult(new LookupResult(string.Empty, string.Empty, new List<LookupMeaning>(), string.Empty, "Select an English word to look it up.", false));
+                return Task.FromResult(new LookupResult(string.Empty, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, "Select an English word to look it up.", false));
             }
 
             if (!string.IsNullOrWhiteSpace(_loadFailureMessage))
             {
-                return Task.FromResult(new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, _loadFailureMessage, false));
+                return Task.FromResult(new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, _loadFailureMessage, false));
             }
 
             return Task.Run(delegate
@@ -88,7 +88,7 @@ namespace MyCaption.Core.Lookup
                     return MdictLookupParser.Parse(candidate, rawHtml);
                 }
 
-                return new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, "No dictionary entry found for this word.", false);
+                return new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, "No dictionary entry found for this word.", false);
             }, cancellationToken);
         }
 

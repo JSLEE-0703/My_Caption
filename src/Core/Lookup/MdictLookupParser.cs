@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Text;
 using MyCaption.Core.Models;
 
 namespace MyCaption.Core.Lookup
@@ -17,12 +18,14 @@ namespace MyCaption.Core.Lookup
             string phonetic = ExtractPhonetic(normalizedText);
             List<LookupMeaning> meanings = ExtractMeanings(normalizedText);
             string example = ExtractExample(normalizedText);
+            string rawContent = BuildRawContent(normalizedText);
 
             return new LookupResult(
                 lookupWord,
                 phonetic,
                 meanings,
                 example,
+                rawContent,
                 meanings.Count == 0 ? "This entry has no definitions yet." : string.Empty,
                 true);
         }
@@ -146,6 +149,12 @@ namespace MyCaption.Core.Lookup
                 return meanings;
             }
 
+            meanings = ExtractPlainTextMeanings(lines);
+            if (meanings.Count > 0)
+            {
+                return meanings;
+            }
+
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
@@ -158,6 +167,71 @@ namespace MyCaption.Core.Lookup
             }
 
             return meanings;
+        }
+
+        private static List<LookupMeaning> ExtractPlainTextMeanings(string[] lines)
+        {
+            List<LookupMeaning> meanings = new List<LookupMeaning>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = CleanupRawLine(lines[i]);
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                if (LooksLikeHeadword(line) ||
+                    LooksLikePhoneticLine(line) ||
+                    LooksLikeInflectionLine(line) ||
+                    LooksLikeFrequencyLine(line))
+                {
+                    continue;
+                }
+
+                string partOfSpeech;
+                string definition;
+                if (TrySplitPlainTextMeaning(line, out partOfSpeech, out definition))
+                {
+                    if (TryAddPlainTextMeaning(meanings, seen, partOfSpeech, definition))
+                    {
+                        continue;
+                    }
+                }
+
+                if (line.StartsWith("[", StringComparison.Ordinal))
+                {
+                    if (TryAddPlainTextMeaning(meanings, seen, string.Empty, line))
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            return meanings;
+        }
+
+        private static bool TryAddPlainTextMeaning(List<LookupMeaning> meanings, HashSet<string> seen, string partOfSpeech, string candidate)
+        {
+            string definition = CleanupDefinition(candidate);
+            if (string.IsNullOrWhiteSpace(definition))
+            {
+                return false;
+            }
+
+            if (definition.Length > 320)
+            {
+                return false;
+            }
+
+            if (definition.StartsWith("[[", StringComparison.Ordinal) || LooksLikeNoise(definition) || !seen.Add(definition))
+            {
+                return false;
+            }
+
+            meanings.Add(new LookupMeaning(partOfSpeech, definition));
+            return true;
         }
 
         private static string ExtractExample(string normalizedText)
@@ -179,6 +253,35 @@ namespace MyCaption.Core.Lookup
             }
 
             return string.Empty;
+        }
+
+        private static string BuildRawContent(string normalizedText)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedText))
+            {
+                return string.Empty;
+            }
+
+            string[] lines = SplitLines(normalizedText);
+            StringBuilder builder = new StringBuilder();
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string cleaned = CleanupRawLine(lines[i]);
+                if (string.IsNullOrWhiteSpace(cleaned))
+                {
+                    continue;
+                }
+
+                if (builder.Length > 0)
+                {
+                    builder.AppendLine();
+                }
+
+                builder.Append(cleaned);
+            }
+
+            return builder.ToString().Trim();
         }
 
         private static bool TryAddMeaning(List<LookupMeaning> meanings, HashSet<string> seen, string partOfSpeech, string candidate)
@@ -242,6 +345,63 @@ namespace MyCaption.Core.Lookup
             cleaned = Regex.Replace(cleaned, @"\s+", " ");
             cleaned = cleaned.Trim(' ', '-', ':', ';');
             return cleaned.Trim();
+        }
+
+        private static string CleanupRawLine(string value)
+        {
+            string cleaned = CleanupInlineText(value);
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                return string.Empty;
+            }
+
+            cleaned = Regex.Replace(cleaned, @"`\d+`", string.Empty);
+            cleaned = cleaned.Replace("[[PHON]]", string.Empty)
+                .Replace("[[POS]]", string.Empty)
+                .Replace("[[DEF]]", string.Empty)
+                .Replace("[[TR]]", string.Empty)
+                .Replace("[[EX]]", string.Empty);
+            cleaned = Regex.Replace(cleaned, @"\s+", " ");
+            return cleaned.Trim();
+        }
+
+        private static bool TrySplitPlainTextMeaning(string line, out string partOfSpeech, out string definition)
+        {
+            partOfSpeech = string.Empty;
+            definition = string.Empty;
+
+            Match match = Regex.Match(line, @"^(n|v|vt|vi|adj|adv|a|ad|prep|conj|pron|int|num|aux|art|abbr)\.\s*(.+)$", RegexOptions.IgnoreCase);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            partOfSpeech = match.Groups[1].Value.ToLowerInvariant() + ".";
+            definition = match.Groups[2].Value.Trim();
+            return !string.IsNullOrWhiteSpace(definition);
+        }
+
+        private static bool LooksLikeHeadword(string line)
+        {
+            return Regex.IsMatch(line, @"^[A-Za-z][A-Za-z' -]{1,40}$");
+        }
+
+        private static bool LooksLikePhoneticLine(string line)
+        {
+            return Regex.IsMatch(line, @"^\[[^\]]+\](\s*-\w+)?$", RegexOptions.IgnoreCase);
+        }
+
+        private static bool LooksLikeInflectionLine(string line)
+        {
+            return line.StartsWith("时态:", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("过去式:", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("过去分词:", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("复数:", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool LooksLikeFrequencyLine(string line)
+        {
+            return Regex.IsMatch(line, @"^\([^)]*\d+/\d+[^)]*\)$");
         }
 
         private static bool LooksLikeExample(string value)

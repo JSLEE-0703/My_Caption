@@ -16,6 +16,7 @@ namespace MyCaption.Core.Models
         private string _lookupWord;
         private string _lookupPhonetic;
         private string _lookupExample;
+        private string _lookupRawContent;
         private string _lookupStatusMessage;
 
         public OverlayViewModel()
@@ -32,6 +33,7 @@ namespace MyCaption.Core.Models
             _lookupWord = string.Empty;
             _lookupPhonetic = string.Empty;
             _lookupExample = string.Empty;
+            _lookupRawContent = string.Empty;
             _lookupStatusMessage = string.Empty;
         }
 
@@ -123,6 +125,18 @@ namespace MyCaption.Core.Models
             }
         }
 
+        public string LookupRawContent
+        {
+            get { return _lookupRawContent; }
+            set
+            {
+                if (SetProperty(ref _lookupRawContent, value, "LookupRawContent"))
+                {
+                    OnPropertyChanged("HasLookupRawContent");
+                }
+            }
+        }
+
         public string LookupStatusMessage
         {
             get { return _lookupStatusMessage; }
@@ -143,6 +157,11 @@ namespace MyCaption.Core.Models
         public bool HasLookupExample
         {
             get { return !string.IsNullOrWhiteSpace(LookupExample); }
+        }
+
+        public bool HasLookupRawContent
+        {
+            get { return !string.IsNullOrWhiteSpace(LookupRawContent); }
         }
 
         public bool HasLookupStatusMessage
@@ -179,6 +198,7 @@ namespace MyCaption.Core.Models
             LookupPhonetic = string.Empty;
             LookupMeanings.Clear();
             LookupExample = string.Empty;
+            LookupRawContent = string.Empty;
             LookupStatusMessage = "Looking up dictionary entry...";
             OnPropertyChanged("HasLookupMeanings");
         }
@@ -192,6 +212,7 @@ namespace MyCaption.Core.Models
                 LookupPhonetic = string.Empty;
                 LookupMeanings.Clear();
                 LookupExample = string.Empty;
+                LookupRawContent = string.Empty;
                 LookupStatusMessage = string.Empty;
                 OnPropertyChanged("HasLookupMeanings");
                 return;
@@ -216,6 +237,7 @@ namespace MyCaption.Core.Models
             }
 
             LookupExample = result.Example ?? string.Empty;
+            LookupRawContent = result.RawContent ?? string.Empty;
             LookupStatusMessage = result.StatusMessage ?? string.Empty;
             OnPropertyChanged("HasLookupMeanings");
         }
