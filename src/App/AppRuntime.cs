@@ -383,6 +383,7 @@ namespace MyCaption.Runtime
                             string.Empty,
                             null,
                             string.Empty,
+                            string.Empty,
                             "Dictionary lookup failed: " + ex.Message,
                             false));
                     }
