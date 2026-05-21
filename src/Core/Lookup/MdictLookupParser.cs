@@ -98,7 +98,7 @@ namespace MyCaption.Core.Lookup
             int lastMeaningIndex = -1;
             string[] lines = SplitLines(normalizedText);
 
-            for (int i = 0; i < lines.Length && meanings.Count < 3; i++)
+            for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
                 if (line.StartsWith("[[POS]]", StringComparison.Ordinal))
@@ -146,7 +146,7 @@ namespace MyCaption.Core.Lookup
                 return meanings;
             }
 
-            for (int i = 0; i < lines.Length && meanings.Count < 3; i++)
+            for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
                 if (line.StartsWith("[[", StringComparison.Ordinal))

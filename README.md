@@ -22,6 +22,14 @@ Current implementation shape:
 - Main runtime model: a single coordinating `AppRuntime`
 - Primary extension points: translation providers and lookup providers
 
+Current release-oriented asset layout:
+
+- `dictionary\default.mdx`: bundled default offline MDict dictionary
+- `dictionary\ATTRIBUTION.txt`: source and license note for the bundled dictionary
+- `runtime\python\`: bundled Python runtime location expected by the translation and MDict flows
+- `runtime\mdict\`: optional bundled mdict executable location
+- `tools\argos_translate_stdin.py`: bundled Argos translation bridge script
+
 ## Build And Run
 
 Build on this machine:
@@ -213,14 +221,18 @@ Current lookup settings surfaced through the UI:
 
 Behavior:
 
-- Default provider is `JsonFile`.
-- Default dictionary path is `<app-base-directory>\dictionary.json`.
+- Default provider is no longer the primary release path.
+- Default dictionary path for JSON mode is `<app-base-directory>\dictionary.json`.
 - `JsonFileLookupProvider` creates a small starter dictionary if the file is missing.
 - Lookup includes simple morphology fallback for common English forms.
 
 ### MDict Mode
 
 Current runtime behavior is important:
+
+- The current default release-oriented lookup provider is `MdictCli`.
+- The default bundled dictionary path is `<app-base-directory>\dictionary\default.mdx`.
+- The repository currently carries `default.mdx` from the official `skywind3000/ECDICT` release assets. See `dictionary\ATTRIBUTION.txt` for source and license notes.
 
 - Selecting `MdictCli` does not require the user to always hand-configure `mdict executable`.
 - The provider now tries to auto-detect a usable `mdict_utils` runtime first.
@@ -230,6 +242,8 @@ Current runtime behavior is important:
 In practice, `MdictLookupProvider` tries to work with:
 
 - an explicitly configured `mdict executable` path
+- a bundled runtime in `<app-base-directory>\runtime\mdict\mdict.exe`
+- a bundled Python runtime in `<app-base-directory>\runtime\python\python.exe`
 - a runtime located relative to the app directory when available
 - the known local Python environment used by this project on this machine
 
@@ -388,4 +402,3 @@ Useful starting points:
 - `src/Core/Lookup/*`: lookup interfaces, hosts, factories, and providers
 - `src/UI/MainWindow/*`: control panel UI and provider settings interactions
 - `src/UI/Overlay/*`: overlay rendering and word lookup interaction
-

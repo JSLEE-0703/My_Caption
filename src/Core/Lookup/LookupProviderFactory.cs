@@ -105,7 +105,7 @@ namespace MyCaption.Core.Lookup
         }
     }
 
-    public sealed class LookupProviderHost : ILookupProvider
+    public sealed class LookupProviderHost : ILookupProvider, IDisposable
     {
         private readonly object _syncRoot;
         private readonly ILookupProviderFactory _factory;
@@ -236,6 +236,7 @@ namespace MyCaption.Core.Lookup
         public void Reload()
         {
             ILookupProvider provider = _factory.Create(_settings);
+            ILookupProvider previousProvider;
             ILookupProviderStatus status = provider as ILookupProviderStatus;
             string statusText = status != null ? status.StatusSummary : provider.DisplayName;
             string dictionaryFilePath = status != null ? status.DictionaryFilePath : _settings.DictionaryFilePath;
@@ -245,6 +246,7 @@ namespace MyCaption.Core.Lookup
 
             lock (_syncRoot)
             {
+                previousProvider = _provider;
                 _provider = provider;
                 _statusText = statusText;
                 _dictionaryFilePath = dictionaryFilePath ?? string.Empty;
@@ -253,10 +255,39 @@ namespace MyCaption.Core.Lookup
                 _settings.MdictExecutablePath = _mdictExecutablePath;
             }
 
+            DisposeProvider(previousProvider, provider);
+
             EventHandler handler = ProviderStatusChanged;
             if (handler != null)
             {
                 handler(this, EventArgs.Empty);
+            }
+        }
+
+        public void Dispose()
+        {
+            ILookupProvider provider;
+
+            lock (_syncRoot)
+            {
+                provider = _provider;
+                _provider = null;
+            }
+
+            DisposeProvider(provider, null);
+        }
+
+        private static void DisposeProvider(ILookupProvider provider, ILookupProvider replacement)
+        {
+            if (provider == null || object.ReferenceEquals(provider, replacement))
+            {
+                return;
+            }
+
+            IDisposable disposable = provider as IDisposable;
+            if (disposable != null)
+            {
+                disposable.Dispose();
             }
         }
     }

@@ -624,6 +624,7 @@ namespace MyCaption.Runtime
             _altMonitor.AltStateChanged -= OnAltStateChanged;
             _translationDispatcher.Dispose();
             _translationProvider.Dispose();
+            _lookupProvider.Dispose();
             _altMonitor.Dispose();
             SaveSettings();
         }
