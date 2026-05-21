@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,19 +12,29 @@ using MyCaption.Core.Models;
 
 namespace MyCaption.Core.Lookup
 {
-    public sealed class MdictLookupProvider : ILookupProvider, ILookupProviderStatus, IMdictLookupProviderStatus
+    public sealed class MdictLookupProvider : ILookupProvider, ILookupProviderStatus, IMdictLookupProviderStatus, IDisposable
     {
+        private readonly object _persistentProcessSyncRoot;
+        private readonly SemaphoreSlim _persistentRequestGate;
         private readonly string _dictionaryFilePath;
         private readonly string _mdictExecutablePath;
         private readonly string _pythonExecutablePath;
+        private readonly string _persistentScriptPath;
         private readonly string _statusSummary;
         private readonly string _loadFailureMessage;
+        private Process _persistentProcess;
+        private StreamWriter _persistentInput;
+        private StreamReader _persistentOutput;
+        private StringBuilder _persistentErrorBuffer;
 
         public MdictLookupProvider(string dictionaryFilePath, string mdictExecutablePath)
         {
+            _persistentProcessSyncRoot = new object();
+            _persistentRequestGate = new SemaphoreSlim(1, 1);
             _dictionaryFilePath = dictionaryFilePath ?? string.Empty;
             _mdictExecutablePath = ResolveMdictExecutablePath(mdictExecutablePath);
             _pythonExecutablePath = ResolvePythonExecutablePath(mdictExecutablePath, _mdictExecutablePath);
+            _persistentScriptPath = ResolvePersistentScriptPath();
             _statusSummary = InitializeStatus(out _loadFailureMessage);
         }
 
@@ -67,7 +79,7 @@ namespace MyCaption.Core.Lookup
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string rawHtml = QueryRawHtml(candidate);
+                    string rawHtml = QueryRawHtml(candidate, cancellationToken);
                     if (string.IsNullOrWhiteSpace(rawHtml))
                     {
                         continue;
@@ -78,6 +90,11 @@ namespace MyCaption.Core.Lookup
 
                 return new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, "No dictionary entry found for this word.", false);
             }, cancellationToken);
+        }
+
+        public void Dispose()
+        {
+            ResetPersistentSession();
         }
 
         private string InitializeStatus(out string loadFailureMessage)
@@ -123,15 +140,17 @@ namespace MyCaption.Core.Lookup
                     string recordCount = TryReadMetadataValue(metadata, "Record");
                     string mddPath = Path.ChangeExtension(_dictionaryFilePath, ".mdd");
                     bool hasMdd = File.Exists(mddPath);
+                    string modeSuffix = SupportsPersistentQueryMode() ? " Fast query mode enabled." : string.Empty;
 
                     if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(recordCount))
                     {
                         return string.Format(
                             CultureInfo.InvariantCulture,
-                            "{0}: {1} entries.{2}",
+                            "{0}: {1} entries.{2}{3}",
                             title,
                             recordCount,
-                            hasMdd ? " Sidecar MDD detected." : string.Empty);
+                            hasMdd ? " Sidecar MDD detected." : string.Empty,
+                            modeSuffix);
                     }
                 }
             }
@@ -139,14 +158,66 @@ namespace MyCaption.Core.Lookup
             {
             }
 
-            return "MDict ready." + (File.Exists(Path.ChangeExtension(_dictionaryFilePath, ".mdd")) ? " Sidecar MDD detected." : string.Empty);
+            return "MDict ready." +
+                (File.Exists(Path.ChangeExtension(_dictionaryFilePath, ".mdd")) ? " Sidecar MDD detected." : string.Empty) +
+                (SupportsPersistentQueryMode() ? " Fast query mode enabled." : string.Empty);
         }
 
-        private string QueryRawHtml(string word)
+        private string QueryRawHtml(string word, CancellationToken cancellationToken)
         {
+            if (SupportsPersistentQueryMode())
+            {
+                return QueryRawHtmlPersistent(word, cancellationToken);
+            }
+
             string output = RunMdictCommand("-q", word, _dictionaryFilePath);
             output = CleanupCommandOutput(output);
             return string.IsNullOrWhiteSpace(output) ? string.Empty : output;
+        }
+
+        private string QueryRawHtmlPersistent(string word, CancellationToken cancellationToken)
+        {
+            _persistentRequestGate.Wait(cancellationToken);
+
+            try
+            {
+                PersistentQuerySession session = EnsurePersistentSession();
+                try
+                {
+                    ClearPersistentErrorBuffer();
+                    WritePersistentRequest(session, word ?? string.Empty);
+                    string responseLine = session.Output.ReadLine();
+                    if (responseLine == null)
+                    {
+                        throw new InvalidOperationException(GetPersistentErrorText("mdict query process exited unexpectedly."));
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    PersistentQueryResponse response = DeserializeJson<PersistentQueryResponse>(responseLine);
+                    if (response == null)
+                    {
+                        throw new InvalidOperationException("mdict query returned an empty response.");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(response.Error))
+                    {
+                        throw new InvalidOperationException(response.Error.Trim());
+                    }
+
+                    string result = CleanupCommandOutput(response.Result);
+                    return string.IsNullOrWhiteSpace(result) ? string.Empty : result;
+                }
+                catch (IOException ex)
+                {
+                    ResetPersistentSession();
+                    throw new InvalidOperationException("mdict query failed: " + ex.Message, ex);
+                }
+            }
+            finally
+            {
+                _persistentRequestGate.Release();
+            }
         }
 
         private string RunMdictCommand(params string[] arguments)
@@ -279,6 +350,13 @@ namespace MyCaption.Core.Lookup
             return string.Empty;
         }
 
+        private static string ResolvePersistentScriptPath()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string scriptPath = Path.Combine(baseDirectory, "tools", "mdict_query_stdin.py");
+            return File.Exists(scriptPath) ? scriptPath : string.Empty;
+        }
+
         private static IEnumerable<string> GetMdictExecutableCandidates(string mdictExecutablePath)
         {
             if (!string.IsNullOrWhiteSpace(mdictExecutablePath))
@@ -289,6 +367,8 @@ namespace MyCaption.Core.Lookup
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             if (!string.IsNullOrWhiteSpace(baseDirectory))
             {
+                yield return Path.Combine(baseDirectory, "runtime", "mdict", "mdict.exe");
+                yield return Path.Combine(baseDirectory, "runtime", "python", "Scripts", "mdict.exe");
                 yield return Path.Combine(baseDirectory, "tools", "mdict.exe");
             }
 
@@ -309,6 +389,12 @@ namespace MyCaption.Core.Lookup
             if (!string.IsNullOrWhiteSpace(resolvedMdictExecutablePath))
             {
                 yield return BuildEnvironmentPythonPath(resolvedMdictExecutablePath);
+            }
+
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            if (!string.IsNullOrWhiteSpace(baseDirectory))
+            {
+                yield return Path.Combine(baseDirectory, "runtime", "python", "python.exe");
             }
 
             string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -472,10 +558,231 @@ namespace MyCaption.Core.Lookup
             return !string.IsNullOrWhiteSpace(value) && seen.Add(value);
         }
 
+        private bool SupportsPersistentQueryMode()
+        {
+            return !string.IsNullOrWhiteSpace(_pythonExecutablePath) &&
+                File.Exists(_pythonExecutablePath) &&
+                !string.IsNullOrWhiteSpace(_persistentScriptPath) &&
+                File.Exists(_persistentScriptPath);
+        }
+
+        private PersistentQuerySession EnsurePersistentSession()
+        {
+            lock (_persistentProcessSyncRoot)
+            {
+                if (_persistentProcess != null && !_persistentProcess.HasExited)
+                {
+                    return new PersistentQuerySession(_persistentInput, _persistentOutput);
+                }
+
+                ResetPersistentSessionCore();
+
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = _pythonExecutablePath,
+                    Arguments = "-X utf8 " + QuoteProcessArgument(_persistentScriptPath) + " " + QuoteProcessArgument(_dictionaryFilePath),
+                    WorkingDirectory = Path.GetDirectoryName(_dictionaryFilePath) ?? AppDomain.CurrentDomain.BaseDirectory,
+                    UseShellExecute = false,
+                    RedirectStandardInput = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                };
+
+                Process process = new Process();
+                process.StartInfo = startInfo;
+                process.ErrorDataReceived += PersistentProcess_ErrorDataReceived;
+                process.Start();
+                process.BeginErrorReadLine();
+
+                _persistentProcess = process;
+                _persistentInput = new StreamWriter(process.StandardInput.BaseStream, new UTF8Encoding(false));
+                _persistentOutput = process.StandardOutput;
+                _persistentErrorBuffer = new StringBuilder();
+
+                return new PersistentQuerySession(_persistentInput, _persistentOutput);
+            }
+        }
+
+        private void WritePersistentRequest(PersistentQuerySession session, string text)
+        {
+            string payload = SerializeJson(new PersistentQueryRequest
+            {
+                Text = text ?? string.Empty
+            });
+
+            session.Input.WriteLine(payload);
+            session.Input.Flush();
+        }
+
+        private void PersistentProcess_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(e.Data))
+            {
+                return;
+            }
+
+            lock (_persistentProcessSyncRoot)
+            {
+                if (_persistentErrorBuffer == null)
+                {
+                    return;
+                }
+
+                if (_persistentErrorBuffer.Length > 0)
+                {
+                    _persistentErrorBuffer.AppendLine();
+                }
+
+                _persistentErrorBuffer.Append(e.Data);
+            }
+        }
+
+        private void ClearPersistentErrorBuffer()
+        {
+            lock (_persistentProcessSyncRoot)
+            {
+                if (_persistentErrorBuffer != null)
+                {
+                    _persistentErrorBuffer.Length = 0;
+                }
+            }
+        }
+
+        private string GetPersistentErrorText(string fallback)
+        {
+            lock (_persistentProcessSyncRoot)
+            {
+                if (_persistentErrorBuffer == null || _persistentErrorBuffer.Length == 0)
+                {
+                    return fallback;
+                }
+
+                string errorText = CleanupCommandOutput(_persistentErrorBuffer.ToString());
+                return string.IsNullOrWhiteSpace(errorText) ? fallback : errorText;
+            }
+        }
+
+        private void ResetPersistentSession()
+        {
+            lock (_persistentProcessSyncRoot)
+            {
+                ResetPersistentSessionCore();
+            }
+        }
+
+        private void ResetPersistentSessionCore()
+        {
+            StreamWriter input = _persistentInput;
+            StreamReader output = _persistentOutput;
+            Process process = _persistentProcess;
+
+            _persistentInput = null;
+            _persistentOutput = null;
+            _persistentProcess = null;
+            _persistentErrorBuffer = null;
+
+            try
+            {
+                if (input != null)
+                {
+                    input.Dispose();
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (output != null)
+                {
+                    output.Dispose();
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (process != null)
+                {
+                    process.ErrorDataReceived -= PersistentProcess_ErrorDataReceived;
+                    if (!process.HasExited)
+                    {
+                        process.Kill();
+                    }
+
+                    process.Dispose();
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static string SerializeJson<T>(T value)
+        {
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
+            using (MemoryStream stream = new MemoryStream())
+            {
+                serializer.WriteObject(stream, value);
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
+        private static T DeserializeJson<T>(string jsonText) where T : class
+        {
+            if (string.IsNullOrWhiteSpace(jsonText))
+            {
+                return null;
+            }
+
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
+            byte[] jsonBytes = Encoding.UTF8.GetBytes(jsonText);
+            using (MemoryStream stream = new MemoryStream(jsonBytes))
+            {
+                return serializer.ReadObject(stream) as T;
+            }
+        }
+
         private static string QuoteProcessArgument(string value)
         {
             string escaped = (value ?? string.Empty).Replace("\"", "\\\"");
             return "\"" + escaped + "\"";
+        }
+
+        private sealed class PersistentQuerySession
+        {
+            public PersistentQuerySession(StreamWriter input, StreamReader output)
+            {
+                Input = input;
+                Output = output;
+            }
+
+            public StreamWriter Input { get; private set; }
+
+            public StreamReader Output { get; private set; }
+        }
+
+        [DataContract]
+        private sealed class PersistentQueryRequest
+        {
+            [DataMember(Name = "text")]
+            public string Text { get; set; }
+        }
+
+        [DataContract]
+        private sealed class PersistentQueryResponse
+        {
+            [DataMember(Name = "result")]
+            public string Result { get; set; }
+
+            [DataMember(Name = "error")]
+            public string Error { get; set; }
         }
     }
 }

@@ -46,10 +46,12 @@ namespace MyCaption.UI.MainWindow
             SelectLookupProvider(_runtime.Panel.DictionaryProviderName);
             DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
             MdictExecutablePathTextBox.Text = _runtime.Panel.MdictExecutablePath;
+            UpdateAdvancedProvidersExpander();
             UpdateTranslationProviderControls();
             UpdateLookupProviderControls();
             EnsureOverlayWindow();
             _isInitializing = false;
+            EnsureDictionarySetup();
         }
 
         private void OnClosed(object sender, EventArgs e)
@@ -325,41 +327,7 @@ namespace MyCaption.UI.MainWindow
 
         private void BrowseDictionaryButton_Click(object sender, RoutedEventArgs e)
         {
-            string currentPath = DictionaryPathTextBox.Text;
-            OpenFileDialog dialog = new OpenFileDialog();
-            bool isMdictProvider = string.Equals(GetSelectedLookupProviderName(), "MdictCli", StringComparison.OrdinalIgnoreCase);
-            dialog.Filter = isMdictProvider
-                ? "MDict files (*.mdx)|*.mdx|All files (*.*)|*.*"
-                : "JSON files (*.json)|*.json|All files (*.*)|*.*";
-            dialog.CheckFileExists = isMdictProvider;
-            dialog.FileName = string.IsNullOrWhiteSpace(currentPath)
-                ? (isMdictProvider ? "dictionary.mdx" : "dictionary.json")
-                : Path.GetFileName(currentPath);
-
-            string initialDirectory = string.Empty;
-            if (!string.IsNullOrWhiteSpace(currentPath))
-            {
-                try
-                {
-                    initialDirectory = Path.GetDirectoryName(currentPath);
-                }
-                catch
-                {
-                    initialDirectory = string.Empty;
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
-            {
-                dialog.InitialDirectory = initialDirectory;
-            }
-
-            bool? result = dialog.ShowDialog(this);
-            if (result == true)
-            {
-                DictionaryPathTextBox.Text = dialog.FileName;
-                CommitDictionaryPath();
-            }
+            PromptForDictionaryFileSelection();
         }
 
         private void CommitDictionaryPath()
@@ -395,6 +363,7 @@ namespace MyCaption.UI.MainWindow
             TranslationApiUrlTextBox.Text = _runtime.Panel.TranslationApiUrl;
             TranslationApiKeyTextBox.Text = _runtime.Panel.TranslationApiKey;
             TranslationApiRegionTextBox.Text = _runtime.Panel.TranslationApiRegion;
+            UpdateAdvancedProvidersExpander();
             UpdateTranslationProviderControls();
         }
 
@@ -570,6 +539,7 @@ namespace MyCaption.UI.MainWindow
             _runtime.UpdateDictionaryProviderName(providerName);
             DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
             MdictExecutablePathTextBox.Text = _runtime.Panel.MdictExecutablePath;
+            UpdateAdvancedProvidersExpander();
             UpdateLookupProviderControls();
         }
 
@@ -713,6 +683,111 @@ namespace MyCaption.UI.MainWindow
         {
             bool isMdictProvider = string.Equals(GetSelectedLookupProviderName(), "MdictCli", StringComparison.OrdinalIgnoreCase);
             MdictExecutablePanel.Visibility = isMdictProvider ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void UpdateAdvancedProvidersExpander()
+        {
+            bool usesDefaultTranslationProvider = string.Equals(GetSelectedTranslationProviderName(), "ExternalCli", StringComparison.OrdinalIgnoreCase);
+            bool usesDefaultLookupProvider = string.Equals(GetSelectedLookupProviderName(), "MdictCli", StringComparison.OrdinalIgnoreCase);
+            AdvancedProvidersExpander.IsExpanded = !(usesDefaultTranslationProvider && usesDefaultLookupProvider);
+        }
+
+        private void EnsureDictionarySetup()
+        {
+            if (!string.Equals(_runtime.Panel.DictionaryProviderName, "MdictCli", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string bundledDictionaryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dictionary", "default.mdx");
+            string configuredDictionaryPath = _runtime.Panel.DictionaryFilePath ?? string.Empty;
+
+            if (File.Exists(bundledDictionaryPath))
+            {
+                if (!string.Equals(configuredDictionaryPath, bundledDictionaryPath, StringComparison.OrdinalIgnoreCase) &&
+                    !File.Exists(configuredDictionaryPath))
+                {
+                    _runtime.UpdateDictionaryFilePath(bundledDictionaryPath);
+                    DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
+                }
+
+                return;
+            }
+
+            if (File.Exists(configuredDictionaryPath))
+            {
+                return;
+            }
+
+            _runtime.Panel.LookupStatusText = "MDict dictionary missing. Choose an .mdx file to enable word lookup.";
+
+            MessageBoxResult result = MessageBox.Show(
+                this,
+                "The bundled MDict dictionary was not found.\n\nChoose an .mdx dictionary now to enable word lookup?",
+                "Dictionary Setup",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                PromptForDictionaryFileSelection();
+            }
+        }
+
+        private void PromptForDictionaryFileSelection()
+        {
+            string selectedPath;
+            if (!TrySelectDictionaryFile(out selectedPath))
+            {
+                return;
+            }
+
+            DictionaryPathTextBox.Text = selectedPath;
+            _runtime.UpdateDictionaryFilePath(selectedPath);
+            DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
+        }
+
+        private bool TrySelectDictionaryFile(out string selectedPath)
+        {
+            selectedPath = string.Empty;
+
+            string currentPath = DictionaryPathTextBox.Text;
+            OpenFileDialog dialog = new OpenFileDialog();
+            bool isMdictProvider = string.Equals(GetSelectedLookupProviderName(), "MdictCli", StringComparison.OrdinalIgnoreCase);
+            dialog.Filter = isMdictProvider
+                ? "MDict files (*.mdx)|*.mdx|All files (*.*)|*.*"
+                : "JSON files (*.json)|*.json|All files (*.*)|*.*";
+            dialog.CheckFileExists = isMdictProvider;
+            dialog.FileName = string.IsNullOrWhiteSpace(currentPath)
+                ? (isMdictProvider ? "dictionary.mdx" : "dictionary.json")
+                : Path.GetFileName(currentPath);
+
+            string initialDirectory = string.Empty;
+            if (!string.IsNullOrWhiteSpace(currentPath))
+            {
+                try
+                {
+                    initialDirectory = Path.GetDirectoryName(currentPath);
+                }
+                catch
+                {
+                    initialDirectory = string.Empty;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(initialDirectory) && Directory.Exists(initialDirectory))
+            {
+                dialog.InitialDirectory = initialDirectory;
+            }
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return false;
+            }
+
+            selectedPath = dialog.FileName;
+            return true;
         }
 
         private void UpdateTranslationProviderControls()
