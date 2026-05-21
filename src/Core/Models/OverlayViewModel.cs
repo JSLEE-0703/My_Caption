@@ -202,7 +202,6 @@ namespace MyCaption.Core.Models
             LookupPhonetic = result.Phonetic;
             LookupMeanings.Clear();
 
-            int count = 0;
             foreach (LookupMeaning meaning in result.Meanings)
             {
                 if (meaning == null || string.IsNullOrWhiteSpace(meaning.Definition))
@@ -214,11 +213,6 @@ namespace MyCaption.Core.Models
                     ? meaning.Definition
                     : meaning.PartOfSpeech + " - " + meaning.Definition;
                 LookupMeanings.Add(line);
-                count++;
-                if (count >= 3)
-                {
-                    break;
-                }
             }
 
             LookupExample = result.Example ?? string.Empty;

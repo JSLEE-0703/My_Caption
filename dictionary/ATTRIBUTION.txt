@@ -1,0 +1,23 @@
+Default bundled dictionary
+==========================
+
+File:
+- default.mdx
+
+Source:
+- Official ECDICT release assets by skywind3000
+- Release page: https://github.com/skywind3000/ECDICT/releases
+- Selected asset lineage: ecdict-mdx-28.zip / "简明英汉字典增强版"
+
+Upstream project:
+- Repository: https://github.com/skywind3000/ECDICT
+- Project name: ECDICT
+- Description: Free English to Chinese Dictionary Database
+
+License:
+- MIT License
+- See the upstream repository license for the authoritative text.
+
+Notes:
+- This file is bundled as the default offline MDict dictionary for My Caption.
+- Users may replace default.mdx with another compatible .mdx dictionary if they prefer.

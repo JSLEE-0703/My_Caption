@@ -279,7 +279,7 @@ namespace MyCaption.Core.Models
 
             if (string.IsNullOrWhiteSpace(ProviderName))
             {
-                ProviderName = "Stub";
+                ProviderName = "ExternalCli";
             }
 
             if (string.IsNullOrWhiteSpace(SourceLanguage))
@@ -302,9 +302,19 @@ namespace MyCaption.Core.Models
                 ExecutablePath = string.Empty;
             }
 
+            if (string.IsNullOrWhiteSpace(ExecutablePath))
+            {
+                ExecutablePath = ResolveDefaultTranslationExecutablePath();
+            }
+
             if (ArgumentsTemplate == null)
             {
                 ArgumentsTemplate = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(ArgumentsTemplate))
+            {
+                ArgumentsTemplate = ResolveDefaultTranslationArgumentsTemplate();
             }
 
             if (ApiUrl == null)
@@ -321,6 +331,34 @@ namespace MyCaption.Core.Models
             {
                 ApiRegion = string.Empty;
             }
+        }
+
+        private static string ResolveDefaultTranslationExecutablePath()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string bundledPythonPath = Path.Combine(baseDirectory, "runtime", "python", "python.exe");
+            if (File.Exists(bundledPythonPath))
+            {
+                return bundledPythonPath;
+            }
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(userProfile))
+            {
+                string knownEnvironmentPythonPath = Path.Combine(userProfile, ".conda", "envs", "herobot_env", "python.exe");
+                if (File.Exists(knownEnvironmentPythonPath))
+                {
+                    return knownEnvironmentPythonPath;
+                }
+            }
+
+            return bundledPythonPath;
+        }
+
+        private static string ResolveDefaultTranslationArgumentsTemplate()
+        {
+            string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tools", "argos_translate_stdin.py");
+            return "\"" + scriptPath + "\" --from {from} --to {to}";
         }
     }
 
@@ -340,18 +378,38 @@ namespace MyCaption.Core.Models
         {
             if (string.IsNullOrWhiteSpace(ProviderName))
             {
-                ProviderName = "JsonFile";
+                ProviderName = "MdictCli";
             }
 
             if (string.IsNullOrWhiteSpace(DictionaryFilePath))
             {
-                DictionaryFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dictionary.json");
+                DictionaryFilePath = ResolveDefaultDictionaryFilePath();
             }
 
             if (MdictExecutablePath == null)
             {
                 MdictExecutablePath = string.Empty;
             }
+        }
+
+        private static string ResolveDefaultDictionaryFilePath()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string[] candidates =
+            {
+                Path.Combine(baseDirectory, "dictionary", "default.mdx"),
+                Path.Combine(baseDirectory, "dictionary.mdx")
+            };
+
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                if (File.Exists(candidates[i]))
+                {
+                    return candidates[i];
+                }
+            }
+
+            return string.Empty;
         }
     }
 }
