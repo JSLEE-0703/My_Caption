@@ -242,7 +242,7 @@
                         <CheckBox x:Name="HideOriginalWindowCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
                                   IsChecked="{Binding HideOriginalLiveCaptions}"
                                   Checked="HideOriginalWindowCheckBox_Changed" Unchecked="HideOriginalWindowCheckBox_Changed"
-                                  Content="Hide built-in Live Captions after attach" />
+                                  Content="Hide Windows Live Captions window" />
                         <CheckBox x:Name="TranslationEnabledCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
                                   IsChecked="{Binding TranslationEnabled}"
                                   Checked="TranslationEnabledCheckBox_Changed" Unchecked="TranslationEnabledCheckBox_Changed"

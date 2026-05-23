@@ -18,6 +18,7 @@ namespace MyCaption.Core.Models
         private string _lookupExample;
         private string _lookupRawContent;
         private string _lookupStatusMessage;
+        private bool _isLookupLoading;
 
         public OverlayViewModel()
         {
@@ -35,6 +36,7 @@ namespace MyCaption.Core.Models
             _lookupExample = string.Empty;
             _lookupRawContent = string.Empty;
             _lookupStatusMessage = string.Empty;
+            _isLookupLoading = false;
         }
 
         public ObservableCollection<WordTokenViewModel> OriginalTokens { get; private set; }
@@ -149,6 +151,12 @@ namespace MyCaption.Core.Models
             }
         }
 
+        public bool IsLookupLoading
+        {
+            get { return _isLookupLoading; }
+            set { SetProperty(ref _isLookupLoading, value, "IsLookupLoading"); }
+        }
+
         public bool HasLookupPhonetic
         {
             get { return !string.IsNullOrWhiteSpace(LookupPhonetic); }
@@ -199,7 +207,8 @@ namespace MyCaption.Core.Models
             LookupMeanings.Clear();
             LookupExample = string.Empty;
             LookupRawContent = string.Empty;
-            LookupStatusMessage = "Looking up dictionary entry...";
+            LookupStatusMessage = string.Empty;
+            IsLookupLoading = true;
             OnPropertyChanged("HasLookupMeanings");
         }
 
@@ -214,6 +223,7 @@ namespace MyCaption.Core.Models
                 LookupExample = string.Empty;
                 LookupRawContent = string.Empty;
                 LookupStatusMessage = string.Empty;
+                IsLookupLoading = false;
                 OnPropertyChanged("HasLookupMeanings");
                 return;
             }
@@ -239,6 +249,7 @@ namespace MyCaption.Core.Models
             LookupExample = result.Example ?? string.Empty;
             LookupRawContent = result.RawContent ?? string.Empty;
             LookupStatusMessage = result.StatusMessage ?? string.Empty;
+            IsLookupLoading = false;
             OnPropertyChanged("HasLookupMeanings");
         }
 

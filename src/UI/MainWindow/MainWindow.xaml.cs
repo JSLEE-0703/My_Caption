@@ -52,6 +52,7 @@ namespace MyCaption.UI.MainWindow
             EnsureOverlayWindow();
             _isInitializing = false;
             EnsureDictionarySetup();
+            _runtime.WarmUpLookupProvider();
         }
 
         private void OnClosed(object sender, EventArgs e)
@@ -745,6 +746,7 @@ namespace MyCaption.UI.MainWindow
             DictionaryPathTextBox.Text = selectedPath;
             _runtime.UpdateDictionaryFilePath(selectedPath);
             DictionaryPathTextBox.Text = _runtime.Panel.DictionaryFilePath;
+            _runtime.WarmUpLookupProvider();
         }
 
         private bool TrySelectDictionaryFile(out string selectedPath)

@@ -1,7 +1,9 @@
-Place the bundled Python runtime here for distributable builds.
+Bundled Python runtime for distributable builds.
 
-Expected key file:
+Important key file:
 - python.exe
 
-Optional companion for MDict:
+Companion for MDict:
 - Scripts\mdict.exe
+
+This runtime is intended to let My Caption run Argos translation and MDict lookup on machines without a separately installed Python environment.
