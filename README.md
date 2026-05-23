@@ -26,9 +26,18 @@ Current release-oriented asset layout:
 
 - `dictionary\default.mdx`: bundled default offline MDict dictionary
 - `dictionary\ATTRIBUTION.txt`: source and license note for the bundled dictionary
-- `runtime\python\`: bundled Python runtime location expected by the translation and MDict flows
-- `runtime\mdict\`: optional bundled mdict executable location
+- `runtime\python\`: bundled Python runtime used by the translation and MDict flows
+- `runtime\python\Scripts\mdict.exe`: bundled MDict CLI entry point from `mdict-utils`
+- `runtime\argos-data\`: bundled Argos Translate offline data, including the default `en -> zh` model
+- `runtime\mdict\`: optional bundled standalone mdict executable location
 - `tools\argos_translate_stdin.py`: bundled Argos translation bridge script
+- `tools\mdict_query_stdin.py`: persistent MDict query bridge script
+
+Current repository note:
+
+- The repository already carries the default MDX dictionary and bridge scripts.
+- The repository now carries a bundled Python runtime and Argos offline data so a fresh settings file can use translation and MDict lookup without a separately installed Python environment.
+- A standalone `runtime\mdict\mdict.exe` remains optional because the default MDict path works through bundled Python and `mdict-utils`.
 
 ## Build And Run
 
@@ -46,7 +55,7 @@ Notes:
 
 - The repository currently targets `.NET Framework 4.8`.
 - The machine can build with MSBuild even if the newer `.NET SDK` is not installed.
-- A missing `.NET Framework 4.8` targeting pack may still produce warnings on this machine, but the project currently builds successfully.
+- A missing `.NET Framework 4.8` targeting pack can block a clean rebuild on this machine, but it does not prevent an already-built app from running on a machine with the .NET Framework 4.8 runtime.
 
 ## Architecture
 
@@ -98,13 +107,14 @@ The main execution flow is:
    - `LookupProviderHost`
    - `AltKeyMonitor`
 3. `AppRuntime` initializes the `OverlayViewModel` and `ControlPanelViewModel`, then subscribes to capture, translation, lookup, and keyboard events.
-4. `AppRuntime.Start()` starts the capture loop and the `Alt` key monitor.
-5. `LiveCaptionsCaptureService` polls the Live Captions window and emits caption snapshots.
+4. `AppRuntime.Start()` starts the capture loop immediately on app startup and starts the `Alt` key monitor.
+5. `LiveCaptionsCaptureService` connects to Windows Live Captions, auto-launches it when needed, and can auto-hide the Live Captions window depending on settings.
 6. `CaptionStabilizer` converts noisy incremental text into more stable display text.
 7. `AppRuntime` updates the overlay with original text and optionally asks `TranslationDispatcher` to translate it.
 8. `TranslationDispatcher` invokes the currently selected `ITranslationProvider` asynchronously and raises completion events back to `AppRuntime`.
-9. When the user clicks a word in the overlay, `AppRuntime` routes the request to `LookupProviderHost`, which delegates to the active `ILookupProvider`.
-10. The lookup result is shown in `LookupCardWindow` while the main overlay remains focused on caption display.
+9. `MainWindow` triggers lookup provider warmup in the background so the first MDict query is less likely to pay the full cold-start cost.
+10. When the user clicks a word in the overlay, `AppRuntime` routes the request to `LookupProviderHost`, which delegates to the active `ILookupProvider`.
+11. The lookup result is shown in `LookupCardWindow` while the main overlay remains focused on caption display.
 
 Key coordination point:
 
@@ -159,6 +169,7 @@ Provider behavior details:
 - `TranslationProviderFactory` normalizes executable paths to absolute paths when possible.
 - Official API providers receive default API URLs when the configured URL is empty.
 - `TranslationProviderHost` raises `ProviderStatusChanged` whenever a provider reload changes its effective status or normalized configuration.
+- `ExternalCliTranslationProvider` supports persistent Argos mode so repeated subtitle translation does not relaunch Python for every line.
 
 ### External CLI Setup
 
@@ -183,6 +194,12 @@ Recommended validation command:
 ```powershell
 'Hello, this is a test.' | <your-python-path>\python.exe <project-root>\tools\argos_translate_stdin.py --from en --to zh
 ```
+
+Important current packaging note:
+
+- A fresh settings file defaults to `runtime\python\python.exe` plus `tools\argos_translate_stdin.py`.
+- `tools\argos_translate_stdin.py` loads `runtime\argos-data` first, then falls back to `tools\argos-data` for local development.
+- If a saved settings file points at a Python executable or Argos script path that no longer exists, defaults can fall back to the bundled runtime path when it is present.
 
 ## Lookup Providers
 
@@ -244,14 +261,26 @@ In practice, `MdictLookupProvider` tries to work with:
 - an explicitly configured `mdict executable` path
 - a bundled runtime in `<app-base-directory>\runtime\mdict\mdict.exe`
 - a bundled Python runtime in `<app-base-directory>\runtime\python\python.exe`
-- a runtime located relative to the app directory when available
+- the bundled `mdict-utils` entry point in `<app-base-directory>\runtime\python\Scripts\mdict.exe`
+- a Python runtime located relative to the app directory when available
 - the known local Python environment used by this project on this machine
+
+Current behavior details:
+
+- MDict lookup supports a persistent query process to avoid paying full process startup and dictionary load time for every word.
+- The app warms up the lookup provider on startup and after dictionary selection changes when possible.
+- The lookup card currently favors showing the cleaned full dictionary page content rather than aggressively restructuring entries.
 
 Status behavior:
 
 - If the `.mdx` path is empty or missing, the provider reports that immediately.
 - If no usable `mdict` runtime can be found, the provider reports that the MDict runtime is unavailable.
 - If the runtime is available, the provider queries metadata and reports a ready status, including `.mdd` sidecar detection when present.
+
+Important current packaging note:
+
+- A fresh settings file defaults to `MdictCli` with `<app-base-directory>\dictionary\default.mdx`.
+- MDict lookup works without a separately installed Python environment when the bundled `runtime\python` directory is present.
 
 ### MDX Import Workflow
 
@@ -285,6 +314,7 @@ Persistence behavior:
 - `SettingsStore.Load()` creates a default settings file if none exists
 - deserialization failures fall back to a new in-memory `AppSettings`
 - `ApplyDefaults()` is called after loading and before saving
+- Fresh defaults select bundled translation and dictionary assets when they are available.
 
 Top-level settings groups:
 
@@ -361,6 +391,7 @@ When debugging issues, it helps to separate them by subsystem:
 - No captions arriving:
   - check Windows Live Captions state
   - inspect `LiveCaptionsAutomationClient` and `LiveCaptionsCaptureService`
+  - confirm whether Windows Live Captions was auto-launched successfully
 - Captions are noisy or unstable:
   - inspect `CaptionStabilizer`
   - review `SyncCommitThreshold` and `IdleCommitThreshold`
@@ -372,6 +403,7 @@ When debugging issues, it helps to separate them by subsystem:
   - verify the active lookup provider
   - verify the dictionary file path
   - for MDX, verify that the runtime can auto-detect or use the configured `mdict` override
+  - if only the first lookup is slow, check whether lookup warmup completed successfully
 
 ## Known Limitations
 
@@ -380,16 +412,16 @@ When debugging issues, it helps to separate them by subsystem:
 - Settings are stored as a single local JSON file with immediate saves; there is no profile system, sync layer, or config migration framework.
 - Provider extensibility exists, but provider-specific configuration still lives in a relatively manual control-panel flow.
 - Lookup morphology fallback is intentionally lightweight and does not aim to be a full linguistic engine.
+- The repository now carries a large bundled Python runtime and Argos model data, so source checkouts and commits are materially larger than before.
 
 ## Next Steps
 
 Highest-value follow-up work currently identified in the repository:
 
-1. Replace `StubTranslationProvider` with a stronger real local translation path where appropriate.
-2. Improve dictionary morphology fallback and support richer entry shapes.
-3. Add better sentence segmentation for mixed English and Chinese streams.
-4. Improve settings UX for language direction and provider-specific configuration.
-5. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
+1. Decide whether the large bundled runtime should stay in Git or move to a release artifact workflow.
+2. Improve dictionary morphology fallback and support richer entry shapes where cleaned full-page display is not enough.
+3. Improve settings UX for language direction and provider-specific configuration.
+4. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
 
 ## File Map
 

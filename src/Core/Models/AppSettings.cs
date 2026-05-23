@@ -162,11 +162,40 @@ namespace MyCaption.Core.Models
     [DataContract]
     public sealed class LiveCaptionsSettings
     {
-        [DataMember]
-        public bool AutoLaunchIfMissing { get; set; }
+        private bool? _autoLaunchIfMissingValue;
+        private bool? _hideOriginalWindowValue;
 
-        [DataMember]
-        public bool HideOriginalWindow { get; set; }
+        public LiveCaptionsSettings()
+        {
+            _autoLaunchIfMissingValue = true;
+            _hideOriginalWindowValue = true;
+        }
+
+        public bool AutoLaunchIfMissing
+        {
+            get { return !_autoLaunchIfMissingValue.HasValue || _autoLaunchIfMissingValue.Value; }
+            set { _autoLaunchIfMissingValue = value; }
+        }
+
+        [DataMember(Name = "AutoLaunchIfMissing", EmitDefaultValue = false)]
+        private bool? AutoLaunchIfMissingValue
+        {
+            get { return _autoLaunchIfMissingValue; }
+            set { _autoLaunchIfMissingValue = value; }
+        }
+
+        public bool HideOriginalWindow
+        {
+            get { return !_hideOriginalWindowValue.HasValue || _hideOriginalWindowValue.Value; }
+            set { _hideOriginalWindowValue = value; }
+        }
+
+        [DataMember(Name = "HideOriginalWindow", EmitDefaultValue = false)]
+        private bool? HideOriginalWindowValue
+        {
+            get { return _hideOriginalWindowValue; }
+            set { _hideOriginalWindowValue = value; }
+        }
 
         [DataMember]
         public int PollIntervalMs { get; set; }
@@ -179,7 +208,15 @@ namespace MyCaption.Core.Models
 
         public void ApplyDefaults()
         {
-            AutoLaunchIfMissing = true;
+            if (!_autoLaunchIfMissingValue.HasValue)
+            {
+                _autoLaunchIfMissingValue = true;
+            }
+
+            if (!_hideOriginalWindowValue.HasValue)
+            {
+                _hideOriginalWindowValue = true;
+            }
 
             if (PollIntervalMs <= 0)
             {
@@ -302,7 +339,7 @@ namespace MyCaption.Core.Models
                 ExecutablePath = string.Empty;
             }
 
-            if (string.IsNullOrWhiteSpace(ExecutablePath))
+            if (string.IsNullOrWhiteSpace(ExecutablePath) || ShouldUseBundledTranslationExecutable(ExecutablePath))
             {
                 ExecutablePath = ResolveDefaultTranslationExecutablePath();
             }
@@ -312,7 +349,7 @@ namespace MyCaption.Core.Models
                 ArgumentsTemplate = string.Empty;
             }
 
-            if (string.IsNullOrWhiteSpace(ArgumentsTemplate))
+            if (string.IsNullOrWhiteSpace(ArgumentsTemplate) || ShouldUseDefaultArgosArgumentsTemplate(ArgumentsTemplate))
             {
                 ArgumentsTemplate = ResolveDefaultTranslationArgumentsTemplate();
             }
@@ -355,11 +392,58 @@ namespace MyCaption.Core.Models
             return bundledPythonPath;
         }
 
+        private static bool ShouldUseBundledTranslationExecutable(string executablePath)
+        {
+            if (string.IsNullOrWhiteSpace(executablePath) || File.Exists(executablePath))
+            {
+                return false;
+            }
+
+            string bundledPythonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "runtime", "python", "python.exe");
+            return File.Exists(bundledPythonPath);
+        }
+
         private static string ResolveDefaultTranslationArgumentsTemplate()
         {
             string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tools", "argos_translate_stdin.py");
             return "\"" + scriptPath + "\" --from {from} --to {to}";
         }
+
+        private static bool ShouldUseDefaultArgosArgumentsTemplate(string argumentsTemplate)
+        {
+            if (string.IsNullOrWhiteSpace(argumentsTemplate) ||
+                argumentsTemplate.IndexOf("argos_translate_stdin.py", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return false;
+            }
+
+            string scriptPath = ExtractArgosScriptPath(argumentsTemplate);
+            return !string.IsNullOrWhiteSpace(scriptPath) &&
+                !File.Exists(scriptPath) &&
+                File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tools", "argos_translate_stdin.py"));
+        }
+
+        private static string ExtractArgosScriptPath(string argumentsTemplate)
+        {
+            string text = argumentsTemplate == null ? string.Empty : argumentsTemplate.Trim();
+            int scriptIndex = text.IndexOf("argos_translate_stdin.py", StringComparison.OrdinalIgnoreCase);
+            if (scriptIndex < 0)
+            {
+                return string.Empty;
+            }
+
+            int start = scriptIndex;
+            while (start > 0 && !char.IsWhiteSpace(text[start - 1]))
+            {
+                start--;
+            }
+
+            string path = text.Substring(start, scriptIndex - start + "argos_translate_stdin.py".Length).Trim().Trim('"');
+            return Path.IsPathRooted(path)
+                ? path
+                : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
+        }
+
     }
 
     [DataContract]

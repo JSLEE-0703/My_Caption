@@ -16,17 +16,15 @@ namespace MyCaption.Core.Lookup
             string markedText = MarkStructuredContent(html);
             string normalizedText = NormalizeText(markedText);
             string phonetic = ExtractPhonetic(normalizedText);
-            List<LookupMeaning> meanings = ExtractMeanings(normalizedText);
-            string example = ExtractExample(normalizedText);
-            string rawContent = BuildRawContent(normalizedText);
+            string rawContent = BuildRawContent(normalizedText, lookupWord, phonetic);
 
             return new LookupResult(
                 lookupWord,
                 phonetic,
-                meanings,
-                example,
+                new List<LookupMeaning>(),
+                string.Empty,
                 rawContent,
-                meanings.Count == 0 ? "This entry has no definitions yet." : string.Empty,
+                string.IsNullOrWhiteSpace(rawContent) ? "This entry has no definitions yet." : string.Empty,
                 true);
         }
 
@@ -255,7 +253,7 @@ namespace MyCaption.Core.Lookup
             return string.Empty;
         }
 
-        private static string BuildRawContent(string normalizedText)
+        private static string BuildRawContent(string normalizedText, string lookupWord, string phonetic)
         {
             if (string.IsNullOrWhiteSpace(normalizedText))
             {
@@ -273,6 +271,11 @@ namespace MyCaption.Core.Lookup
                     continue;
                 }
 
+                if (LooksLikeDuplicateHeaderLine(cleaned, lookupWord, phonetic))
+                {
+                    continue;
+                }
+
                 if (builder.Length > 0)
                 {
                     builder.AppendLine();
@@ -282,6 +285,35 @@ namespace MyCaption.Core.Lookup
             }
 
             return builder.ToString().Trim();
+        }
+
+        private static bool LooksLikeDuplicateHeaderLine(string line, string lookupWord, string phonetic)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(lookupWord) && string.Equals(line, lookupWord, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(phonetic))
+            {
+                string normalizedPhonetic = phonetic.Trim();
+                if (string.Equals(line, normalizedPhonetic, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (line.StartsWith(normalizedPhonetic, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryAddMeaning(List<LookupMeaning> meanings, HashSet<string> seen, string partOfSpeech, string candidate)

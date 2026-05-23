@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using System.Text;
@@ -28,6 +29,7 @@ namespace MyCaption.Runtime
         private readonly Dispatcher _dispatcher;
         private CancellationTokenSource _lookupCancellationTokenSource;
         private int _lookupRequestVersion;
+        private CancellationTokenSource _lookupWarmupCancellationTokenSource;
         private string _currentDisplayText;
         private string _lastRenderedTranslationSourceText;
         private bool _lastRenderedTranslationWasCommitted;
@@ -121,6 +123,7 @@ namespace MyCaption.Runtime
         public void Stop()
         {
             CancelLookup();
+            CancelLookupWarmup();
             Panel.IsRunning = false;
             Panel.CaptureState = CaptureState.Paused;
             Panel.StatusText = "Capture paused.";
@@ -132,6 +135,17 @@ namespace MyCaption.Runtime
         public void SaveSettings()
         {
             _settingsStore.Save(_settings);
+        }
+
+        public void WarmUpLookupProvider()
+        {
+            CancelLookupWarmup();
+            _lookupWarmupCancellationTokenSource = new CancellationTokenSource();
+            CancellationToken cancellationToken = _lookupWarmupCancellationTokenSource.Token;
+
+            Task ignoredTask = _lookupProvider.WarmUpAsync(cancellationToken).ContinueWith(delegate
+            {
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
 
         public void SaveOverlayBounds(Rect bounds)
@@ -614,6 +628,27 @@ namespace MyCaption.Runtime
             }
         }
 
+        private void CancelLookupWarmup()
+        {
+            if (_lookupWarmupCancellationTokenSource == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _lookupWarmupCancellationTokenSource.Cancel();
+                _lookupWarmupCancellationTokenSource.Dispose();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _lookupWarmupCancellationTokenSource = null;
+            }
+        }
+
         public void Dispose()
         {
             Stop();
@@ -623,6 +658,7 @@ namespace MyCaption.Runtime
             _translationProvider.ProviderStatusChanged -= OnTranslationProviderStatusChanged;
             _lookupProvider.ProviderStatusChanged -= OnLookupProviderStatusChanged;
             _altMonitor.AltStateChanged -= OnAltStateChanged;
+            CancelLookupWarmup();
             _translationDispatcher.Dispose();
             _translationProvider.Dispose();
             _lookupProvider.Dispose();

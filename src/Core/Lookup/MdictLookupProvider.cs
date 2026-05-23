@@ -12,7 +12,7 @@ using MyCaption.Core.Models;
 
 namespace MyCaption.Core.Lookup
 {
-    public sealed class MdictLookupProvider : ILookupProvider, ILookupProviderStatus, IMdictLookupProviderStatus, IDisposable
+    public sealed class MdictLookupProvider : ILookupProvider, ILookupProviderStatus, IMdictLookupProviderStatus, ILookupProviderWarmup, IDisposable
     {
         private readonly object _persistentProcessSyncRoot;
         private readonly SemaphoreSlim _persistentRequestGate;
@@ -89,6 +89,30 @@ namespace MyCaption.Core.Lookup
                 }
 
                 return new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, "No dictionary entry found for this word.", false);
+            }, cancellationToken);
+        }
+
+        public Task WarmUpAsync(CancellationToken cancellationToken)
+        {
+            if (!SupportsPersistentQueryMode() || !string.IsNullOrWhiteSpace(_loadFailureMessage))
+            {
+                return Task.FromResult(0);
+            }
+
+            return Task.Run(delegate
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _persistentRequestGate.Wait(cancellationToken);
+
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    EnsurePersistentSession();
+                }
+                finally
+                {
+                    _persistentRequestGate.Release();
+                }
             }, cancellationToken);
         }
 
