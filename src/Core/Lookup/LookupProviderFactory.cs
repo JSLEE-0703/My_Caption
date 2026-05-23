@@ -18,6 +18,11 @@ namespace MyCaption.Core.Lookup
         string MdictExecutablePath { get; }
     }
 
+    internal interface ILookupProviderWarmup
+    {
+        Task WarmUpAsync(CancellationToken cancellationToken);
+    }
+
     public interface ILookupProviderFactory
     {
         ILookupProvider Create(DictionarySettings settings);
@@ -179,6 +184,23 @@ namespace MyCaption.Core.Lookup
             }
 
             return provider.LookupAsync(word, cancellationToken);
+        }
+
+        public Task WarmUpAsync(CancellationToken cancellationToken)
+        {
+            ILookupProvider provider;
+            lock (_syncRoot)
+            {
+                provider = _provider;
+            }
+
+            ILookupProviderWarmup warmup = provider as ILookupProviderWarmup;
+            if (warmup == null)
+            {
+                return Task.FromResult(0);
+            }
+
+            return warmup.WarmUpAsync(cancellationToken);
         }
 
         public void UpdateDictionaryFilePath(string dictionaryFilePath)

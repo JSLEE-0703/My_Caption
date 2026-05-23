@@ -73,13 +73,21 @@ namespace MyCaption.Core.Capture
             {
                 if (!isAttached)
                 {
-                    if (_automationClient.EnsureConnected(_settings.AutoLaunchIfMissing))
+                    if (_automationClient.EnsureWindowConnected(_settings.AutoLaunchIfMissing))
                     {
-                        isAttached = true;
-                        _readFailureCount = 0;
                         ApplyOriginalWindowVisibilitySetting();
-                        PublishState(CaptureState.ConnectedIdle, ConnectedIdleStatus, true);
-                        Thread.Sleep(_settings.PollIntervalMs);
+                        if (_automationClient.TryEnsureCaptionElementReady(2, 30))
+                        {
+                            isAttached = true;
+                            _readFailureCount = 0;
+                            PublishState(CaptureState.ConnectedIdle, ConnectedIdleStatus, true);
+                            Thread.Sleep(_settings.PollIntervalMs);
+                        }
+                        else
+                        {
+                            EnterWaitingState(WaitingStatus);
+                            Thread.Sleep(WaitingRetryDelayMs);
+                        }
                     }
                     else
                     {

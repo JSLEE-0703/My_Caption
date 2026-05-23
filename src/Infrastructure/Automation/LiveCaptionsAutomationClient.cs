@@ -42,9 +42,15 @@ namespace MyCaption.Infrastructure.Automation
 
         public bool EnsureConnected(bool autoLaunch)
         {
+            return EnsureWindowConnected(autoLaunch) &&
+                TryEnsureCaptionElementReady(CaptionElementWarmupAttempts, CaptionElementWarmupDelayMs);
+        }
+
+        public bool EnsureWindowConnected(bool autoLaunch)
+        {
             if (TryAttachToRunningCaptions())
             {
-                return TryEnsureCaptionElementReady(CaptionElementWarmupAttempts, CaptionElementWarmupDelayMs);
+                return true;
             }
 
             if (!autoLaunch)
@@ -52,12 +58,29 @@ namespace MyCaption.Infrastructure.Automation
                 return false;
             }
 
+            if (IsCaptionsProcessRunning())
+            {
+                _window = WaitForExistingWindow(20, 100);
+                _captionsTextBlock = null;
+                if (_window != null)
+                {
+                    _windowHidden = false;
+                    _hasStoredPlacement = false;
+                    return true;
+                }
+            }
+
             _window = LaunchAndFindWindow();
             _captionsTextBlock = null;
             _windowHidden = false;
             _hasStoredPlacement = false;
-            return _window != null &&
-                TryEnsureCaptionElementReady(CaptionElementWarmupAttempts, CaptionElementWarmupDelayMs);
+            return _window != null;
+        }
+
+        public bool IsCaptionsProcessRunning()
+        {
+            Process[] processes = Process.GetProcessesByName(ProcessName);
+            return processes != null && processes.Length > 0;
         }
 
         public bool TryReadCaptions(out string text)
@@ -266,6 +289,30 @@ namespace MyCaption.Infrastructure.Automation
                 if (window != null && string.Equals(window.Current.ClassName, WindowClassName, StringComparison.Ordinal))
                 {
                     return window;
+                }
+            }
+
+            return null;
+        }
+
+        private AutomationElement WaitForExistingWindow(int attempts, int delayMs)
+        {
+            if (attempts <= 0)
+            {
+                attempts = 1;
+            }
+
+            for (int i = 0; i < attempts; i++)
+            {
+                AutomationElement window = FindExistingWindow();
+                if (window != null)
+                {
+                    return window;
+                }
+
+                if (delayMs > 0 && i < attempts - 1)
+                {
+                    Thread.Sleep(delayMs);
                 }
             }
 

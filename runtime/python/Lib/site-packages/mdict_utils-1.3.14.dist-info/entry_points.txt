@@ -1,0 +1,2 @@
+[console_scripts]
+mdict = mdict_utils.__main__:run

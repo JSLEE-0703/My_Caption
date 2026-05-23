@@ -4,6 +4,14 @@ import sys
 from mdict_utils.reader import MDX, get_record
 
 
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 def build_index(mdx):
     index = {}
     key_list = mdx._key_list

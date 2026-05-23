@@ -5,7 +5,24 @@ import sys
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ARGOS_ROOT = os.path.join(SCRIPT_DIR, "argos-data")
+APP_ROOT = os.path.dirname(SCRIPT_DIR)
+
+
+def resolve_argos_root():
+    candidates = [
+        os.environ.get("MYCAPTION_ARGOS_DATA", ""),
+        os.path.join(APP_ROOT, "runtime", "argos-data"),
+        os.path.join(SCRIPT_DIR, "argos-data"),
+    ]
+
+    for candidate in candidates:
+        if candidate and os.path.isdir(candidate):
+            return candidate
+
+    return candidates[1]
+
+
+ARGOS_ROOT = resolve_argos_root()
 os.environ.setdefault("XDG_DATA_HOME", ARGOS_ROOT)
 os.environ.setdefault("XDG_CONFIG_HOME", ARGOS_ROOT)
 os.environ.setdefault("XDG_CACHE_HOME", ARGOS_ROOT)
