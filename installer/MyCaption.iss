@@ -67,3 +67,28 @@ begin
       MB_OK);
   end;
 end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  SettingsDir: string;
+begin
+  if CurUninstallStep <> usPostUninstall then
+  begin
+    Exit;
+  end;
+
+  SettingsDir := ExpandConstant('{userappdata}\{#MyAppName}');
+  if not DirExists(SettingsDir) then
+  begin
+    Exit;
+  end;
+
+  if MsgBox(
+    'Do you want to delete your My Caption user settings?' + #13#10 +
+    SettingsDir,
+    mbConfirmation,
+    MB_YESNO) = IDYES then
+  begin
+    DelTree(SettingsDir, True, True, True);
+  end;
+end;

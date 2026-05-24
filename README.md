@@ -102,6 +102,12 @@ Expected installer output:
 
 The installer copies the `bin\Release` application payload into `Program Files`, including `runtime\`, `dictionary\`, and `tools\`. It excludes `settings.json`, creates Start Menu shortcuts, optionally creates a desktop shortcut, warns when `.NET Framework 4.8` is not detected, and launches the app after installation when selected.
 
+Uninstall behavior:
+
+- Installed program files and shortcuts are removed by the Inno Setup uninstaller.
+- `%AppData%\My Caption` is preserved by default.
+- After uninstalling program files, the uninstaller asks whether to delete `%AppData%\My Caption`; choosing Yes removes the user settings directory.
+
 ## Architecture
 
 The codebase follows a layered structure even though it is a small desktop app.
