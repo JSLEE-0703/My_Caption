@@ -18,7 +18,7 @@ Prepare the project for release packaging while keeping the repository state acc
   - `installer/MyCaption.iss`, `README.md`, `docs/notes/next-steps.md`, and `PROJECT_STATE.md` were updated for the Inno Setup installer workflow after the AppData settings persistence commit.
   - `dist/MyCaptionSetup-0.1.0.exe` was generated locally by Inno Setup and is untracked.
 - Changes in this update:
-  - `installer/MyCaption.iss`: adds an Inno Setup installer script that packages `bin\Release`, excludes `settings.json`, warns if `.NET Framework 4.8` is not detected, and creates shortcuts.
+  - `installer/MyCaption.iss`: adds an Inno Setup installer script that packages `bin\Release`, excludes `settings.json`, warns if `.NET Framework 4.8` is not detected, creates shortcuts, and asks during uninstall whether to delete `%AppData%\My Caption`.
   - `README.md`: documents installer prerequisites, `ISCC.exe` build command, expected setup output, and packaged payload.
   - `docs/notes/next-steps.md`: now prioritizes building and validating the installer on a packaging/clean Windows machine.
   - Inno Setup 6.7.2 was installed via `winget`, and `installer/MyCaption.iss` compiled successfully into `dist/MyCaptionSetup-0.1.0.exe`.
@@ -130,6 +130,7 @@ Prepare the project for release packaging while keeping the repository state acc
 - User settings are now release-oriented toward a user-writable AppData path instead of the application base directory.
 - The initial installer workflow uses Inno Setup and packages the already-built `bin\Release` payload into `Program Files`.
 - The installer warns if `.NET Framework 4.8` is not detected but does not block installation.
+- The uninstaller removes installed program files and shortcuts, preserves `%AppData%\My Caption` by default, and asks whether to delete that user settings directory after program files are removed.
 - Only the three oversized runtime files listed above are in Git LFS; this is intentional and narrow.
 - Most of `runtime` is still tracked as normal Git content.
 - The current machine has the `.NET Framework 4.8` targeting pack configured.
@@ -137,7 +138,7 @@ Prepare the project for release packaging while keeping the repository state acc
 ## Known Issues / Risks
 
 - AppData settings persistence was implemented on 2026-05-24 but has not yet been validated by launching the WPF app or exercising a real legacy settings migration.
-- The generated installer has not yet been run; install, launch, offline translation, MDict lookup, and uninstall behavior still need validation.
+- The generated installer has not yet been re-run after adding the uninstall user-settings deletion prompt; install, launch, offline translation, MDict lookup, uninstall, and the optional AppData deletion flow still need validation.
 - A fresh clone needs Git LFS installed and hydrated; otherwise the three LFS files may be pointer files and Argos can fail, including with `WinError 193` around `ctranslate2.dll`.
 - The repository is large because most bundled runtime files are still normal Git content.
 - Runtime asset strategy is not final: keep mostly in Git, move more files to LFS, or move runtime assets to release artifacts.
@@ -149,7 +150,7 @@ Prepare the project for release packaging while keeping the repository state acc
 - [ ] Decide the long-term runtime asset strategy: mostly normal Git, more Git LFS, or release artifact workflow.
 - [ ] Validate AppData settings persistence and legacy `settings.json` migration by launching the WPF app.
 - [x] Build `installer\MyCaption.iss` with Inno Setup and produce `dist\MyCaptionSetup-0.1.0.exe`.
-- [ ] Validate installer install, launch, offline translation, MDict lookup, and uninstall behavior.
+- [ ] Validate installer install, launch, offline translation, MDict lookup, uninstall, and optional AppData settings deletion behavior.
 - [ ] Add richer installer metadata such as app icon and third-party notices.
 - [ ] Validate on a clean Windows machine without system Python or development-only paths.
 - [ ] Improve dictionary morphology fallback and richer dictionary entry handling.
