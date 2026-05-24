@@ -14,6 +14,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist
 OutputBaseFilename=MyCaptionSetup-{#MyAppVersion}
+SetupIconFile=..\assets\icon\MyCaption.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -39,6 +40,12 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\runtime"
+Type: filesandordirs; Name: "{app}\tools"
+Type: filesandordirs; Name: "{app}\dictionary"
+Type: dirifempty; Name: "{app}"
 
 [Code]
 function IsDotNet48Installed(): Boolean;
