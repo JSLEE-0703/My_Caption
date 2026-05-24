@@ -32,6 +32,7 @@ Current release-oriented asset layout:
 - `runtime\mdict\`: optional bundled standalone mdict executable location
 - `tools\argos_translate_stdin.py`: bundled Argos translation bridge script
 - `tools\mdict_query_stdin.py`: persistent MDict query bridge script
+- `assets\icon\MyCaption.ico`: application and installer icon
 
 Current repository note:
 
@@ -100,11 +101,12 @@ Expected installer output:
 
 - `dist\MyCaptionSetup-0.1.0.exe`
 
-The installer copies the `bin\Release` application payload into `Program Files`, including `runtime\`, `dictionary\`, and `tools\`. It excludes `settings.json`, creates Start Menu shortcuts, optionally creates a desktop shortcut, warns when `.NET Framework 4.8` is not detected, and launches the app after installation when selected.
+The installer copies the `bin\Release` application payload into `Program Files`, including `runtime\`, `dictionary\`, and `tools\`. It excludes `settings.json`, uses `assets\icon\MyCaption.ico` for installer branding, creates Start Menu shortcuts, optionally creates a desktop shortcut, warns when `.NET Framework 4.8` is not detected, and launches the app after installation when selected.
 
 Uninstall behavior:
 
 - Installed program files and shortcuts are removed by the Inno Setup uninstaller.
+- `runtime\`, `tools\`, and `dictionary\` under the install directory are removed recursively so runtime-generated cache files do not leave the app directory behind.
 - `%AppData%\My Caption` is preserved by default.
 - After uninstalling program files, the uninstaller asks whether to delete `%AppData%\My Caption`; choosing Yes removes the user settings directory.
 
@@ -493,3 +495,4 @@ Useful starting points:
 - `src/Core/Lookup/*`: lookup interfaces, hosts, factories, and providers
 - `src/UI/MainWindow/*`: control panel UI and provider settings interactions
 - `src/UI/Overlay/*`: overlay rendering and word lookup interaction
+- `assets/icon/*`: source PNG and Windows icon used by the app and installer

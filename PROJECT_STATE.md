@@ -14,21 +14,23 @@ Prepare the project for release packaging while keeping the repository state acc
 
 - Branch at update time: `release`
 - Git status at update time:
-  - `AGENTS.md` has pre-existing uncommitted changes.
-  - `installer/MyCaption.iss`, `README.md`, `docs/notes/next-steps.md`, and `PROJECT_STATE.md` were updated for the Inno Setup installer workflow after the AppData settings persistence commit.
+  - `MyCaption.csproj`, `installer/MyCaption.iss`, `README.md`, `docs/notes/next-steps.md`, `.gitignore`, and `PROJECT_STATE.md` have uncommitted updates for icon integration, installer cleanup behavior, docs, and generated cache ignores.
+  - `assets/icon/source.png` and `assets/icon/MyCaption.ico` are new uncommitted icon assets.
   - `dist/MyCaptionSetup-0.1.0.exe` was generated locally by Inno Setup and is untracked.
 - Changes in this update:
-  - `installer/MyCaption.iss`: adds an Inno Setup installer script that packages `bin\Release`, excludes `settings.json`, warns if `.NET Framework 4.8` is not detected, creates shortcuts, and asks during uninstall whether to delete `%AppData%\My Caption`.
+  - `MyCaption.csproj`: embeds `assets/icon/MyCaption.ico` as the WPF application icon and keeps both icon assets in the project file.
+  - `installer/MyCaption.iss`: adds an Inno Setup installer script that packages `bin\Release`, excludes `settings.json`, uses `assets/icon/MyCaption.ico`, warns if `.NET Framework 4.8` is not detected, creates shortcuts, recursively removes installed runtime/tool/dictionary directories on uninstall, and asks during uninstall whether to delete `%AppData%\My Caption`.
   - `README.md`: documents installer prerequisites, `ISCC.exe` build command, expected setup output, and packaged payload.
   - `docs/notes/next-steps.md`: now prioritizes building and validating the installer on a packaging/clean Windows machine.
-  - Inno Setup 6.7.2 was installed via `winget`, and `installer/MyCaption.iss` compiled successfully into `dist/MyCaptionSetup-0.1.0.exe`.
+  - `.gitignore`: ignores generated Python `__pycache__/` directories.
+  - Inno Setup 6.7.2 was installed via `winget`, and `installer/MyCaption.iss` compiled successfully into `dist/MyCaptionSetup-0.1.0.exe` after icon integration.
   - `PROJECT_STATE.md`: refreshed as the persistent handoff document.
 - Recent commits before this update:
+  - `26b82ba` Add Inno Setup installer workflow
   - `ce64a98` Prepare release settings persistence
   - `df6b620` Merge PR #2: Document runtime LFS and release state
   - `0cf87f5` Document runtime LFS and release state
   - `2c44c27` Merge PR #1: Bundle offline translator runtime assets
-  - `45e27ee` Track large runtime assets with Git LFS
 - Remote context: PR `https://github.com/JSLEE-0703/My_Caption/pull/1` was merged into `master` earlier on 2026-05-24 with merge commit `2c44c274d4644f6d3989de517fd98757b50d7256`.
 
 ## How to Run
@@ -65,13 +67,13 @@ Prepare the project for release packaging while keeping the repository state acc
 ## How to Test or Validate
 
 - Verified during this update:
-  - `Release|x64` MSBuild completed successfully after the AppData settings persistence change.
+  - `Release|x64` MSBuild completed successfully after app icon integration.
   - Release output check confirmed `runtime`, `dictionary`, and `tools` are present under `bin\Release`.
   - Argos bridge smoke test translated `hello` successfully.
   - MDict bridge smoke test returned a dictionary result for `hello`.
   - Inno Setup 6.7.2 installed via `winget`.
   - `installer\MyCaption.iss` compiled successfully with `ISCC.exe`.
-  - `dist\MyCaptionSetup-0.1.0.exe` was generated locally; size observed on 2026-05-24 was 300,770,036 bytes.
+  - `dist\MyCaptionSetup-0.1.0.exe` was generated locally after app icon integration; size observed on 2026-05-24 was 301,120,467 bytes.
   - `git lfs ls-files` - run on 2026-05-24; confirmed exactly three LFS-tracked runtime files.
   - Read-only repository inspection commands - run on 2026-05-24; confirmed current branch, git status, recent commits, top-level structure, and relevant README notes.
 - Not run during this update:
@@ -99,11 +101,14 @@ Prepare the project for release packaging while keeping the repository state acc
 - `runtime/argos-data/`: bundled Argos Translate offline model data.
 - `tools/argos_translate_stdin.py`: Argos translation bridge script.
 - `tools/mdict_query_stdin.py`: persistent MDict query bridge script.
+- `assets/icon/source.png`: source PNG for the application icon provided by the user.
+- `assets/icon/MyCaption.ico`: Windows icon embedded into the app and used by the installer.
 - `installer/MyCaption.iss`: Inno Setup script for packaging the Release output into a Windows installer.
 - `.gitattributes`: tracks exactly three oversized runtime files through Git LFS.
 
 ## Recent Changes
 
+- Added app icon assets and wired `assets/icon/MyCaption.ico` into the WPF executable and Inno Setup installer.
 - Added `installer/MyCaption.iss` for Inno Setup packaging.
 - Documented installer prerequisites, build command, expected output, and payload behavior in `README.md`.
 - Installed Inno Setup 6.7.2 via `winget` and generated `dist/MyCaptionSetup-0.1.0.exe`.
@@ -129,8 +134,9 @@ Prepare the project for release packaging while keeping the repository state acc
 - Dictionary defaults are release-oriented toward `MdictCli` with `dictionary/default.mdx`.
 - User settings are now release-oriented toward a user-writable AppData path instead of the application base directory.
 - The initial installer workflow uses Inno Setup and packages the already-built `bin\Release` payload into `Program Files`.
+- The WPF executable and Inno Setup installer use `assets/icon/MyCaption.ico`.
 - The installer warns if `.NET Framework 4.8` is not detected but does not block installation.
-- The uninstaller removes installed program files and shortcuts, preserves `%AppData%\My Caption` by default, and asks whether to delete that user settings directory after program files are removed.
+- The uninstaller removes installed program files and shortcuts, recursively removes install-directory `runtime`, `tools`, and `dictionary` folders to clean runtime-generated cache files, preserves `%AppData%\My Caption` by default, and asks whether to delete that user settings directory after program files are removed.
 - Only the three oversized runtime files listed above are in Git LFS; this is intentional and narrow.
 - Most of `runtime` is still tracked as normal Git content.
 - The current machine has the `.NET Framework 4.8` targeting pack configured.
@@ -138,7 +144,7 @@ Prepare the project for release packaging while keeping the repository state acc
 ## Known Issues / Risks
 
 - AppData settings persistence was implemented on 2026-05-24 but has not yet been validated by launching the WPF app or exercising a real legacy settings migration.
-- The generated installer has not yet been re-run after adding the uninstall user-settings deletion prompt; install, launch, offline translation, MDict lookup, uninstall, and the optional AppData deletion flow still need validation.
+- The generated installer has not yet been run after adding recursive install-directory cleanup for runtime-generated cache files; install, launch, offline translation, MDict lookup, uninstall, install-directory cleanup, and the optional AppData deletion flow still need validation.
 - A fresh clone needs Git LFS installed and hydrated; otherwise the three LFS files may be pointer files and Argos can fail, including with `WinError 193` around `ctranslate2.dll`.
 - The repository is large because most bundled runtime files are still normal Git content.
 - Runtime asset strategy is not final: keep mostly in Git, move more files to LFS, or move runtime assets to release artifacts.
@@ -150,8 +156,8 @@ Prepare the project for release packaging while keeping the repository state acc
 - [ ] Decide the long-term runtime asset strategy: mostly normal Git, more Git LFS, or release artifact workflow.
 - [ ] Validate AppData settings persistence and legacy `settings.json` migration by launching the WPF app.
 - [x] Build `installer\MyCaption.iss` with Inno Setup and produce `dist\MyCaptionSetup-0.1.0.exe`.
-- [ ] Validate installer install, launch, offline translation, MDict lookup, uninstall, and optional AppData settings deletion behavior.
-- [ ] Add richer installer metadata such as app icon and third-party notices.
+- [ ] Validate installer install, launch, offline translation, MDict lookup, uninstall, install-directory cleanup, and optional AppData settings deletion behavior.
+- [ ] Add richer installer metadata such as third-party notices.
 - [ ] Validate on a clean Windows machine without system Python or development-only paths.
 - [ ] Improve dictionary morphology fallback and richer dictionary entry handling.
 - [ ] Improve settings UX for language direction and provider-specific configuration.
