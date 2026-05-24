@@ -1,94 +1,94 @@
 # My Caption
 
-My Caption is a Windows subtitle companion for Windows Live Captions. It captures caption text, stabilizes fast-changing partial captions, optionally translates the result, and displays everything in a lightweight overlay with word lookup.
+My Caption 是一个面向 Windows Live Captions 的字幕辅助工具。它会捕获实时字幕文本，稳定快速变化的临时字幕，可选地进行翻译，并通过轻量悬浮窗显示字幕和单词查询结果。
 
-## Features
+## 功能特点
 
-- Captures text from Windows Live Captions through UI Automation.
-- Reduces flicker from rapidly changing partial caption output.
-- Shows captions in a low-distraction WPF overlay.
-- Supports offline translation with bundled Argos Translate assets.
-- Supports word lookup with a bundled MDict dictionary.
-- Lets the user hold `Alt` to temporarily interact with the overlay.
-- Stores user settings in a user-writable AppData location.
-- Provides a Windows installer built with Inno Setup.
+- 通过 UI Automation 捕获 Windows Live Captions 文本。
+- 减少实时字幕片段快速变化带来的闪烁。
+- 使用轻量 WPF 悬浮窗显示字幕。
+- 内置 Argos Translate 离线翻译资源。
+- 内置 MDict 词典查询能力。
+- 按住 `Alt` 可临时与悬浮窗交互。
+- 用户设置保存到 AppData 下的可写目录。
+- 提供基于 Inno Setup 的 Windows 安装器。
 
-## Release Version
+## 发布版本
 
-The recommended way to install My Caption is to download the Windows installer from GitHub Releases.
+推荐从 GitHub Releases 下载 Windows 安装包：
 
-- [Download latest release](https://github.com/JSLEE-0703/My_Caption/releases/latest)
-- [View all release versions](https://github.com/JSLEE-0703/My_Caption/releases)
+- [下载最新版](https://github.com/JSLEE-0703/My_Caption/releases/latest)
+- [查看全部版本](https://github.com/JSLEE-0703/My_Caption/releases)
 
-## Installation
+## 安装
 
-Download the installer from the release page and run it on Windows.
+从发布页下载安装包，然后在 Windows 上运行安装程序。
 
-The installer copies the application into `Program Files`, including the bundled `runtime`, `dictionary`, and `tools` assets needed for the default offline translation and dictionary lookup paths.
+安装器会把应用安装到 `Program Files`，并一并安装默认离线翻译和词典查询需要的 `runtime`、`dictionary`、`tools` 资源。
 
-The application targets `.NET Framework 4.8`. The installer checks for .NET Framework 4.8 and shows a warning when it is not detected, but it does not install .NET automatically.
+应用目标运行环境是 `.NET Framework 4.8`。安装器会检测 .NET Framework 4.8，未检测到时会显示提示，但不会自动安装 .NET。
 
-## Usage
+## 使用方式
 
-1. Start Windows Live Captions.
-2. Start My Caption.
-3. Use the control panel to configure caption display, translation, and dictionary lookup.
-4. Keep the overlay click-through during normal use.
-5. Hold `Alt` to interact with the overlay, move it, or click an English word to open the dictionary popup.
+1. 启动 Windows Live Captions。
+2. 启动 My Caption。
+3. 在控制面板中配置字幕显示、翻译和词典查询。
+4. 日常使用时保持悬浮窗点击穿透。
+5. 按住 `Alt` 后可以移动悬浮窗，或点击英文单词打开词典弹窗。
 
-Fresh settings default to the bundled offline assets when they are present:
+首次生成配置时，应用会优先使用内置离线资源：
 
-- Translation uses the bundled Python runtime and Argos bridge script.
-- Dictionary lookup uses the bundled MDict dictionary at `dictionary\default.mdx`.
+- 翻译默认使用内置 Python 运行时和 Argos 桥接脚本。
+- 词典查询默认使用 `dictionary\default.mdx`。
 
-## Settings
+## 设置
 
-Settings are stored in:
+设置文件保存在：
 
 ```text
 %AppData%\My Caption\settings.json
 ```
 
-If an older application-directory `settings.json` exists and the AppData settings file does not, My Caption copies the legacy file into the AppData location on first load.
+如果旧版本曾在应用目录中保存 `settings.json`，并且 AppData 中还没有设置文件，My Caption 会在首次加载时把旧配置复制到 AppData 位置。
 
-Uninstalling the application preserves `%AppData%\My Caption` by default. During uninstall, the uninstaller asks whether to delete that user settings directory.
+卸载应用时，`%AppData%\My Caption` 默认会保留。卸载程序会询问是否删除这个用户设置目录。
 
-## Uninstall Behavior
+## 卸载行为
 
-The Inno Setup uninstaller removes installed program files and shortcuts.
+Inno Setup 卸载程序会删除已安装的程序文件和快捷方式。
 
-Runtime-generated cache files under the install directory are also cleaned by recursively removing these installed payload folders:
+安装目录下由运行时产生的缓存也会随这些安装载荷目录一起递归清理：
 
 - `runtime`
 - `tools`
 - `dictionary`
 
-User settings are separate from the install directory and are only removed when the user chooses to delete `%AppData%\My Caption` during uninstall.
+用户设置与安装目录分离，只有在卸载时选择删除 `%AppData%\My Caption` 才会被移除。
 
-## Bundled Assets
+## 内置资源
 
-Current release-oriented assets:
+当前发布版本包含：
 
-- `runtime\python\`: bundled Python runtime used by translation and MDict lookup.
-- `runtime\argos-data\`: bundled Argos Translate offline data.
-- `dictionary\default.mdx`: bundled default MDict dictionary.
-- `dictionary\ATTRIBUTION.txt`: source and license note for the bundled dictionary.
-- `tools\argos_translate_stdin.py`: Argos translation bridge script.
-- `tools\mdict_query_stdin.py`: MDict query bridge script.
-- `assets\icon\MyCaption.ico`: application and installer icon.
+- `runtime\python\`：翻译和 MDict 查询使用的内置 Python 运行时。
+- `runtime\argos-data\`：Argos Translate 离线数据。
+- `dictionary\default.mdx`：默认 MDict 词典。
+- `dictionary\ATTRIBUTION.txt`：内置词典的来源和许可说明。
+- `tools\argos_translate_stdin.py`：Argos 翻译桥接脚本。
+- `tools\mdict_query_stdin.py`：MDict 查询桥接脚本。
+- `assets\icon\MyCaption.ico`：应用和安装器图标。
 
-The repository uses Git LFS for selected large runtime files. If building or packaging from a fresh clone, initialize Git LFS and hydrate the checkout before validating the bundled offline runtime.
+仓库对部分大型运行时文件使用 Git LFS。如果从源码构建或打包，请先初始化 Git LFS 并拉取完整文件，再验证内置离线运行时。
 
-## Repository Layout
+## 仓库结构
 
-- `src\`: WPF application source.
-- `installer\`: Inno Setup installer script.
-- `runtime\`: bundled offline runtime assets.
-- `dictionary\`: bundled dictionary assets and attribution.
-- `tools\`: helper scripts used by translation, lookup, and dictionary import workflows.
-- `assets\icon\`: source icon and Windows icon file.
-- `docs\notes\`: project notes that are not part of the user-facing README.
+- `src\`：WPF 应用源码。
+- `installer\`：Inno Setup 安装器脚本。
+- `runtime\`：内置离线运行时资源。
+- `dictionary\`：内置词典和来源说明。
+- `tools\`：翻译、查询和词典导入相关辅助脚本。
+- `assets\icon\`：源图标和 Windows 图标文件。
+- `docs\notes\`：不属于用户说明页的项目记录。
 
-## Attribution
+## 致谢
 
-The bundled dictionary attribution is recorded in `dictionary\ATTRIBUTION.txt`.
+内置词典的来源和许可信息记录在 `dictionary\ATTRIBUTION.txt`。
