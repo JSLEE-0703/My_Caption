@@ -1,5 +1,7 @@
 # My Caption
 
+语言：简体中文 | [English](README.en.md)
+
 My Caption 是一个面向 Windows Live Captions 的字幕辅助工具。它会捕获实时字幕文本，稳定快速变化的临时字幕，可选地进行翻译，并通过轻量悬浮窗显示字幕和单词查询结果。
 
 ## 功能特点
