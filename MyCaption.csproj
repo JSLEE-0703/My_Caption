@@ -34,6 +34,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml" />
@@ -42,6 +43,20 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="dictionary\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtime\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tools\argos_translate_stdin.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tools\mdict_query_stdin.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -80,8 +95,11 @@
     <Compile Include="src\Core\Models\WordTokenViewModel.cs" />
     <Compile Include="src\Core\Stabilization\CaptionStabilizer.cs" />
     <Compile Include="src\Core\Translation\ITranslationProvider.cs" />
+    <Compile Include="src\Core\Translation\ExternalCliTranslationProvider.cs" />
+    <Compile Include="src\Core\Translation\OfficialApiTranslationProvider.cs" />
     <Compile Include="src\Core\Translation\StubTranslationProvider.cs" />
     <Compile Include="src\Core\Translation\TranslationProviderFactory.cs" />
+    <Compile Include="src\Core\Translation\TranslationProviderHost.cs" />
     <Compile Include="src\Core\Translation\TranslationDispatcher.cs" />
     <Compile Include="src\Infrastructure\Automation\LiveCaptionsAutomationClient.cs" />
     <Compile Include="src\Infrastructure\Persistence\SettingsStore.cs" />
