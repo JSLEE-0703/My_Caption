@@ -80,6 +80,28 @@ Notes:
 - The bundled Argos and MDict smoke checks passed on 2026-05-24.
 - Git LFS content must be hydrated before building if the checkout is fresh or if the LFS files were left as pointer files.
 
+## Installer
+
+The repository includes an Inno Setup script at `installer\MyCaption.iss`.
+
+Build prerequisites:
+
+- Build `Release|x64` first.
+- Install Inno Setup on the packaging machine so `ISCC.exe` is available.
+- Make sure Git LFS files are hydrated before packaging.
+
+Build the installer:
+
+```powershell
+ISCC.exe .\installer\MyCaption.iss
+```
+
+Expected installer output:
+
+- `dist\MyCaptionSetup-0.1.0.exe`
+
+The installer copies the `bin\Release` application payload into `Program Files`, including `runtime\`, `dictionary\`, and `tools\`. It excludes `settings.json`, creates Start Menu shortcuts, optionally creates a desktop shortcut, warns when `.NET Framework 4.8` is not detected, and launches the app after installation when selected.
+
 ## Architecture
 
 The codebase follows a layered structure even though it is a small desktop app.
@@ -448,10 +470,11 @@ When debugging issues, it helps to separate them by subsystem:
 Highest-value follow-up work currently identified in the repository:
 
 1. Decide whether the bundled `runtime` should stay mostly in normal Git, move more files to Git LFS, or move to a release artifact workflow.
-2. Improve dictionary morphology fallback and support richer entry shapes where cleaned full-page display is not enough.
-3. Improve settings UX for language direction and provider-specific configuration.
-4. Validate AppData settings creation and legacy application-directory `settings.json` migration by launching the WPF app.
-5. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
+2. Validate install, launch, offline translation, MDict lookup, and uninstall behavior with the generated Inno Setup installer.
+3. Validate AppData settings creation and legacy application-directory `settings.json` migration by launching the WPF app.
+4. Improve dictionary morphology fallback and support richer entry shapes where cleaned full-page display is not enough.
+5. Improve settings UX for language direction and provider-specific configuration.
+6. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
 
 ## File Map
 
