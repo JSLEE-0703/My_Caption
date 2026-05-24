@@ -38,24 +38,38 @@ Current repository note:
 - The repository already carries the default MDX dictionary and bridge scripts.
 - The repository now carries a bundled Python runtime and Argos offline data so a fresh settings file can use translation and MDict lookup without a separately installed Python environment.
 - A standalone `runtime\mdict\mdict.exe` remains optional because the default MDict path works through bundled Python and `mdict-utils`.
+- Only three oversized runtime files are tracked through Git LFS; the rest of `runtime` is currently tracked as normal Git content.
+
+Git LFS tracked runtime files:
+
+- `runtime\python\Lib\site-packages\torch\lib\torch_cpu.dll`
+- `runtime\argos-data\argos-translate\packages\translate-en_zh-1_9\model\model.bin`
+- `runtime\python\Lib\site-packages\ctranslate2\ctranslate2.dll`
+
+Clone/setup implication:
+
+- Install and initialize Git LFS before building or running from a fresh clone.
+- If any of the files above are checked out as small pointer files, run `git lfs pull` or `git lfs checkout`.
+- A pointer-file checkout can make Argos fail with errors such as `WinError 193` when loading `ctranslate2.dll`.
 
 ## Build And Run
 
-Build on this machine:
+Build Release on this machine:
 
 ```powershell
-& 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe' 'D:\My_Caption\MyCaption.csproj' /t:Build /p:Configuration=Debug /p:Platform=x64
+& 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe' 'D:\My_Caption\MyCaption.csproj' /t:Build /p:Configuration=Release /p:Platform=x64
 ```
 
 Output:
 
-- `D:\My_Caption\bin\Debug\MyCaption.exe`
+- `D:\My_Caption\bin\Release\MyCaption.exe`
 
 Notes:
 
 - The repository currently targets `.NET Framework 4.8`.
 - The machine can build with MSBuild even if the newer `.NET SDK` is not installed.
-- A missing `.NET Framework 4.8` targeting pack can block a clean rebuild on this machine, but it does not prevent an already-built app from running on a machine with the .NET Framework 4.8 runtime.
+- The current build environment has the `.NET Framework 4.8` targeting pack installed and can build `Release|x64` with 0 warnings and 0 errors.
+- Git LFS content must be hydrated before building if the checkout is fresh or if the LFS files were left as pointer files.
 
 ## Architecture
 
@@ -404,6 +418,10 @@ When debugging issues, it helps to separate them by subsystem:
   - verify the dictionary file path
   - for MDX, verify that the runtime can auto-detect or use the configured `mdict` override
   - if only the first lookup is slow, check whether lookup warmup completed successfully
+- Bundled Argos translation fails to start:
+  - verify `runtime\python\python.exe` exists in the app base directory
+  - verify the Git LFS files are real binaries, not pointer files
+  - run `git lfs pull` or `git lfs checkout` if `ctranslate2.dll`, `model.bin`, or `torch_cpu.dll` is unexpectedly tiny
 
 ## Known Limitations
 
@@ -412,16 +430,18 @@ When debugging issues, it helps to separate them by subsystem:
 - Settings are stored as a single local JSON file with immediate saves; there is no profile system, sync layer, or config migration framework.
 - Provider extensibility exists, but provider-specific configuration still lives in a relatively manual control-panel flow.
 - Lookup morphology fallback is intentionally lightweight and does not aim to be a full linguistic engine.
-- The repository now carries a large bundled Python runtime and Argos model data, so source checkouts and commits are materially larger than before.
+- The repository carries a large bundled Python runtime and Argos model data. Three oversized files use Git LFS, but most runtime files are still normal Git content.
+- Developers and build machines need Git LFS available before validating the bundled offline translation path.
 
 ## Next Steps
 
 Highest-value follow-up work currently identified in the repository:
 
-1. Decide whether the large bundled runtime should stay in Git or move to a release artifact workflow.
+1. Decide whether the bundled `runtime` should stay mostly in normal Git, move more files to Git LFS, or move to a release artifact workflow.
 2. Improve dictionary morphology fallback and support richer entry shapes where cleaned full-page display is not enough.
 3. Improve settings UX for language direction and provider-specific configuration.
-4. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
+4. Move user settings out of the application base directory before installing to protected locations such as `Program Files`.
+5. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
 
 ## File Map
 
