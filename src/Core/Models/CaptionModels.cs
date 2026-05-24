@@ -40,11 +40,12 @@ namespace MyCaption.Core.Models
 
     public sealed class TranslationRequest
     {
-        public TranslationRequest(string sourceText, string sourceLanguage, string targetLanguage)
+        public TranslationRequest(string sourceText, string sourceLanguage, string targetLanguage, bool isCommitted)
         {
             SourceText = sourceText;
             SourceLanguage = sourceLanguage;
             TargetLanguage = targetLanguage;
+            IsCommitted = isCommitted;
         }
 
         public string SourceText { get; private set; }
@@ -52,19 +53,24 @@ namespace MyCaption.Core.Models
         public string SourceLanguage { get; private set; }
 
         public string TargetLanguage { get; private set; }
+
+        public bool IsCommitted { get; private set; }
     }
 
     public sealed class TranslationResult
     {
-        public TranslationResult(string sourceText, string translatedText)
+        public TranslationResult(string sourceText, string translatedText, bool isCommitted)
         {
             SourceText = sourceText;
             TranslatedText = translatedText;
+            IsCommitted = isCommitted;
         }
 
         public string SourceText { get; private set; }
 
         public string TranslatedText { get; private set; }
+
+        public bool IsCommitted { get; private set; }
     }
 
     public sealed class LookupMeaning
@@ -82,12 +88,13 @@ namespace MyCaption.Core.Models
 
     public sealed class LookupResult
     {
-        public LookupResult(string word, string phonetic, IList<LookupMeaning> meanings, string example, string statusMessage, bool isFound)
+        public LookupResult(string word, string phonetic, IList<LookupMeaning> meanings, string example, string rawContent, string statusMessage, bool isFound)
         {
             Word = word;
             Phonetic = phonetic;
             Meanings = meanings ?? new List<LookupMeaning>();
             Example = example;
+            RawContent = rawContent;
             StatusMessage = statusMessage;
             IsFound = isFound;
         }
@@ -99,6 +106,8 @@ namespace MyCaption.Core.Models
         public IList<LookupMeaning> Meanings { get; private set; }
 
         public string Example { get; private set; }
+
+        public string RawContent { get; private set; }
 
         public string StatusMessage { get; private set; }
 

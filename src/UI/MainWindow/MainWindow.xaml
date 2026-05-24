@@ -9,6 +9,141 @@
         Background="#11161B"
         WindowStartupLocation="CenterScreen"
         FontFamily="Bahnschrift">
+    <Window.Resources>
+        <Style x:Key="ProviderComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#F3F2EA" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ClosedStateButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border x:Name="ClosedStateBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="18" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentPresenter Margin="0,0,8,0"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Left"
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                                        <Path Grid.Column="1"
+                                              Width="10"
+                                              Height="6"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"
+                                              Data="M 0 0 L 5 6 L 10 0"
+                                              Stroke="#57D18C"
+                                              StrokeThickness="1.8"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round" />
+                                    </Grid>
+                                </Border>
+                            </ToggleButton>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,4,0,0"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Background="#11161B"
+                                        BorderBrush="#32404D"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <ScrollViewer MaxHeight="240"
+                                                  CanContentScroll="True">
+                                        <StackPanel IsItemsHost="True"
+                                                    KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="ClosedStateBorder" Property="MinHeight" Value="30" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="ClosedStateBorder" Property="BorderBrush" Value="#57D18C" />
+                            </Trigger>
+                            <Trigger SourceName="ClosedStateButton" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ClosedStateBorder" Property="BorderBrush" Value="#4C6274" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#8A949D" />
+                                <Setter TargetName="ClosedStateBorder" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ProviderComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#F3F2EA" />
+            <Setter Property="Background" Value="#11161B" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="18" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter VerticalAlignment="Center"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                <Path x:Name="SelectedGlyph"
+                                      Grid.Column="1"
+                                      Width="10"
+                                      Height="8"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Right"
+                                      Data="M 0 4 L 3 7 L 10 0"
+                                      Stroke="#57D18C"
+                                      StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#24303A" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#11161B" />
+                                <Setter Property="Foreground" Value="#F3F2EA" />
+                                <Setter TargetName="SelectedGlyph" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
                   CanContentScroll="False"
@@ -58,6 +193,7 @@
                     <StackPanel>
                         <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#F3F2EA" Text="Pipeline" />
                         <TextBlock Margin="0,12,0,0" FontSize="13" Foreground="#B9C3CC" Text="{Binding ProviderText}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,0" FontSize="12" Foreground="#8FE2D6" Text="{Binding TranslationStatusText}" TextWrapping="Wrap" />
                         <TextBlock Margin="0,8,0,0" FontSize="13" Foreground="#B9C3CC" Text="{Binding LookupProviderText}" TextWrapping="Wrap" />
                         <TextBlock Margin="0,8,0,0" FontSize="12" Foreground="#8FE2D6" Text="{Binding LookupStatusText}" TextWrapping="Wrap" />
                     </StackPanel>
@@ -106,22 +242,39 @@
                         <CheckBox x:Name="HideOriginalWindowCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
                                   IsChecked="{Binding HideOriginalLiveCaptions}"
                                   Checked="HideOriginalWindowCheckBox_Changed" Unchecked="HideOriginalWindowCheckBox_Changed"
-                                  Content="Hide built-in Live Captions after attach" />
+                                  Content="Hide Windows Live Captions window" />
+                        <CheckBox x:Name="TranslationEnabledCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
+                                  IsChecked="{Binding TranslationEnabled}"
+                                  Checked="TranslationEnabledCheckBox_Changed" Unchecked="TranslationEnabledCheckBox_Changed"
+                                  Content="Enable translation" />
                         <CheckBox x:Name="ShowTranslationTextCheckBox" Margin="0,12,0,0" Foreground="#F3F2EA"
                                   IsChecked="{Binding ShowTranslationText}"
                                   Checked="ShowTranslationTextCheckBox_Changed" Unchecked="ShowTranslationTextCheckBox_Changed"
                                   Content="Show translation text in overlay" />
-                        <TextBlock Margin="0,16,0,0" Foreground="#F3F2EA" Text="Lookup provider" />
-                        <ComboBox x:Name="LookupProviderComboBox"
-                                  Margin="0,8,0,0"
-                                  MinHeight="30"
-                                  Background="#11161B"
-                                  BorderBrush="#32404D"
-                                  Foreground="#E6ECE8"
-                                  SelectionChanged="LookupProviderComboBox_SelectionChanged">
-                            <ComboBoxItem Tag="JsonFile" Content="JSON file" />
-                            <ComboBoxItem Tag="MdictCli" Content="MDict (.mdx)" />
-                        </ComboBox>
+                        <StackPanel Margin="0,16,0,0">
+                            <TextBlock Foreground="#F3F2EA" Text="Source language" />
+                            <TextBox x:Name="TranslationSourceLanguageTextBox"
+                                     Margin="0,8,0,0"
+                                     MinHeight="30"
+                                     Padding="8,5"
+                                     Background="#11161B"
+                                     BorderBrush="#32404D"
+                                     Foreground="#E6ECE8"
+                                     Text="{Binding TranslationSourceLanguage, Mode=OneWay}"
+                                     LostFocus="TranslationSourceLanguageTextBox_LostFocus"
+                                     KeyDown="TranslationSourceLanguageTextBox_KeyDown" />
+                            <TextBlock Margin="0,12,0,0" Foreground="#F3F2EA" Text="Target language" />
+                            <TextBox x:Name="TranslationTargetLanguageTextBox"
+                                     Margin="0,8,0,0"
+                                     MinHeight="30"
+                                     Padding="8,5"
+                                     Background="#11161B"
+                                     BorderBrush="#32404D"
+                                     Foreground="#E6ECE8"
+                                     Text="{Binding TranslationTargetLanguage, Mode=OneWay}"
+                                     LostFocus="TranslationTargetLanguageTextBox_LostFocus"
+                                     KeyDown="TranslationTargetLanguageTextBox_KeyDown" />
+                        </StackPanel>
                         <TextBlock Margin="0,16,0,0" Foreground="#F3F2EA" Text="Dictionary source" />
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
@@ -147,33 +300,154 @@
                                     BorderThickness="0"
                                     Content="Browse..." />
                         </Grid>
-                        <StackPanel x:Name="MdictExecutablePanel" Margin="0,16,0,0">
-                            <TextBlock Foreground="#F3F2EA" Text="mdict executable" />
-                            <Grid Margin="0,8,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="MdictExecutablePathTextBox"
-                                         MinHeight="30"
-                                         Padding="8,5"
-                                         Background="#11161B"
-                                         BorderBrush="#32404D"
-                                         Foreground="#E6ECE8"
-                                         Text="{Binding MdictExecutablePath, Mode=OneWay}"
-                                         LostFocus="MdictExecutablePathTextBox_LostFocus"
-                                         KeyDown="MdictExecutablePathTextBox_KeyDown" />
-                                <Button Grid.Column="1"
-                                        Width="88"
-                                        Height="30"
-                                        Margin="10,0,0,0"
-                                        Click="BrowseMdictExecutableButton_Click"
-                                        Background="#32404D"
-                                        Foreground="#F3F2EA"
-                                        BorderThickness="0"
-                                        Content="Browse..." />
-                            </Grid>
-                        </StackPanel>
+                        <Expander x:Name="AdvancedProvidersExpander"
+                                  Margin="0,18,0,0"
+                                  Background="#11161B"
+                                  Foreground="#F3F2EA"
+                                  BorderBrush="#29323A"
+                                  BorderThickness="1"
+                                  IsExpanded="False">
+                            <Expander.Header>
+                                <TextBlock Foreground="#F3F2EA" FontWeight="SemiBold" Text="Advanced providers and runtime" />
+                            </Expander.Header>
+                            <StackPanel Margin="0,14,0,0">
+                                <TextBlock Foreground="#B9C3CC"
+                                           FontSize="12"
+                                           Text="For packaged builds, the app should use bundled translation and MDict runtimes automatically. Open this section only when you need to override the defaults." 
+                                           TextWrapping="Wrap" />
+                                <TextBlock Margin="0,16,0,0" Foreground="#F3F2EA" Text="Translation provider" />
+                                <ComboBox x:Name="TranslationProviderComboBox"
+                                          Margin="0,8,0,0"
+                                          MinHeight="30"
+                                          Background="#11161B"
+                                          BorderBrush="#32404D"
+                                          Foreground="#E6ECE8"
+                                          Style="{StaticResource ProviderComboBoxStyle}"
+                                          ItemContainerStyle="{StaticResource ProviderComboBoxItemStyle}"
+                                          SelectionChanged="TranslationProviderComboBox_SelectionChanged">
+                                    <ComboBoxItem Tag="Stub" Content="Stub" />
+                                    <ComboBoxItem Tag="ExternalCli" Content="External CLI" />
+                                    <ComboBoxItem Tag="DeepL" Content="DeepL API" />
+                                    <ComboBoxItem Tag="AzureTranslator" Content="Azure Translator" />
+                                    <ComboBoxItem Tag="GoogleCloud" Content="Google Cloud Translation" />
+                                </ComboBox>
+                                <StackPanel x:Name="ExternalTranslationPanel" Margin="0,16,0,0">
+                                    <TextBlock Margin="0,12,0,0" Foreground="#F3F2EA" Text="Executable path" />
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="TranslationExecutablePathTextBox"
+                                                 MinHeight="30"
+                                                 Padding="8,5"
+                                                 Background="#11161B"
+                                                 BorderBrush="#32404D"
+                                                 Foreground="#E6ECE8"
+                                                 Text="{Binding TranslationExecutablePath, Mode=OneWay}"
+                                                 LostFocus="TranslationExecutablePathTextBox_LostFocus"
+                                                 KeyDown="TranslationExecutablePathTextBox_KeyDown" />
+                                        <Button Grid.Column="1"
+                                                Width="88"
+                                                Height="30"
+                                                Margin="10,0,0,0"
+                                                Click="BrowseTranslationExecutableButton_Click"
+                                                Background="#32404D"
+                                                Foreground="#F3F2EA"
+                                                BorderThickness="0"
+                                                Content="Browse..." />
+                                    </Grid>
+                                    <TextBlock Margin="0,12,0,0" Foreground="#F3F2EA" Text="Arguments template" />
+                                    <TextBox x:Name="TranslationArgumentsTemplateTextBox"
+                                             Margin="0,8,0,0"
+                                             MinHeight="30"
+                                             Padding="8,5"
+                                             Background="#11161B"
+                                             BorderBrush="#32404D"
+                                             Foreground="#E6ECE8"
+                                             Text="{Binding TranslationArgumentsTemplate, Mode=OneWay}"
+                                             LostFocus="TranslationArgumentsTemplateTextBox_LostFocus"
+                                             KeyDown="TranslationArgumentsTemplateTextBox_KeyDown" />
+                                </StackPanel>
+                                <StackPanel x:Name="ApiTranslationPanel" Margin="0,16,0,0">
+                                    <TextBlock Foreground="#F3F2EA" Text="API URL" />
+                                    <TextBox x:Name="TranslationApiUrlTextBox"
+                                             Margin="0,8,0,0"
+                                             MinHeight="30"
+                                             Padding="8,5"
+                                             Background="#11161B"
+                                             BorderBrush="#32404D"
+                                             Foreground="#E6ECE8"
+                                             Text="{Binding TranslationApiUrl, Mode=OneWay}"
+                                             LostFocus="TranslationApiUrlTextBox_LostFocus"
+                                             KeyDown="TranslationApiUrlTextBox_KeyDown" />
+                                    <TextBlock Margin="0,12,0,0" Foreground="#F3F2EA" Text="API key" />
+                                    <TextBox x:Name="TranslationApiKeyTextBox"
+                                             Margin="0,8,0,0"
+                                             MinHeight="30"
+                                             Padding="8,5"
+                                             Background="#11161B"
+                                             BorderBrush="#32404D"
+                                             Foreground="#E6ECE8"
+                                             Text="{Binding TranslationApiKey, Mode=OneWay}"
+                                             LostFocus="TranslationApiKeyTextBox_LostFocus"
+                                             KeyDown="TranslationApiKeyTextBox_KeyDown" />
+                                    <StackPanel x:Name="TranslationApiRegionPanel" Margin="0,12,0,0">
+                                        <TextBlock Foreground="#F3F2EA" Text="Resource region (Azure only)" />
+                                        <TextBox x:Name="TranslationApiRegionTextBox"
+                                                 Margin="0,8,0,0"
+                                                 MinHeight="30"
+                                                 Padding="8,5"
+                                                 Background="#11161B"
+                                                 BorderBrush="#32404D"
+                                                 Foreground="#E6ECE8"
+                                                 Text="{Binding TranslationApiRegion, Mode=OneWay}"
+                                                 LostFocus="TranslationApiRegionTextBox_LostFocus"
+                                                 KeyDown="TranslationApiRegionTextBox_KeyDown" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Margin="0,16,0,0" Foreground="#F3F2EA" Text="Lookup provider" />
+                                <ComboBox x:Name="LookupProviderComboBox"
+                                          Margin="0,8,0,0"
+                                          MinHeight="30"
+                                          Background="#11161B"
+                                          BorderBrush="#32404D"
+                                          Foreground="#E6ECE8"
+                                          Style="{StaticResource ProviderComboBoxStyle}"
+                                          ItemContainerStyle="{StaticResource ProviderComboBoxItemStyle}"
+                                          SelectionChanged="LookupProviderComboBox_SelectionChanged">
+                                    <ComboBoxItem Tag="JsonFile" Content="JSON file" />
+                                    <ComboBoxItem Tag="MdictCli" Content="MDict (.mdx)" />
+                                </ComboBox>
+                                <StackPanel x:Name="MdictExecutablePanel" Margin="0,16,0,0">
+                                    <TextBlock Foreground="#F3F2EA" Text="mdict executable (optional)" />
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="MdictExecutablePathTextBox"
+                                                 MinHeight="30"
+                                                 Padding="8,5"
+                                                 Background="#11161B"
+                                                 BorderBrush="#32404D"
+                                                 Foreground="#E6ECE8"
+                                                 Text="{Binding MdictExecutablePath, Mode=OneWay}"
+                                                 LostFocus="MdictExecutablePathTextBox_LostFocus"
+                                                 KeyDown="MdictExecutablePathTextBox_KeyDown" />
+                                        <Button Grid.Column="1"
+                                                Width="88"
+                                                Height="30"
+                                                Margin="10,0,0,0"
+                                                Click="BrowseMdictExecutableButton_Click"
+                                                Background="#32404D"
+                                                Foreground="#F3F2EA"
+                                                BorderThickness="0"
+                                                Content="Browse..." />
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="14,0,0,0">

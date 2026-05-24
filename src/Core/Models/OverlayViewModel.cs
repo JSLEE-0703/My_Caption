@@ -16,7 +16,9 @@ namespace MyCaption.Core.Models
         private string _lookupWord;
         private string _lookupPhonetic;
         private string _lookupExample;
+        private string _lookupRawContent;
         private string _lookupStatusMessage;
+        private bool _isLookupLoading;
 
         public OverlayViewModel()
         {
@@ -32,7 +34,9 @@ namespace MyCaption.Core.Models
             _lookupWord = string.Empty;
             _lookupPhonetic = string.Empty;
             _lookupExample = string.Empty;
+            _lookupRawContent = string.Empty;
             _lookupStatusMessage = string.Empty;
+            _isLookupLoading = false;
         }
 
         public ObservableCollection<WordTokenViewModel> OriginalTokens { get; private set; }
@@ -123,6 +127,18 @@ namespace MyCaption.Core.Models
             }
         }
 
+        public string LookupRawContent
+        {
+            get { return _lookupRawContent; }
+            set
+            {
+                if (SetProperty(ref _lookupRawContent, value, "LookupRawContent"))
+                {
+                    OnPropertyChanged("HasLookupRawContent");
+                }
+            }
+        }
+
         public string LookupStatusMessage
         {
             get { return _lookupStatusMessage; }
@@ -135,6 +151,12 @@ namespace MyCaption.Core.Models
             }
         }
 
+        public bool IsLookupLoading
+        {
+            get { return _isLookupLoading; }
+            set { SetProperty(ref _isLookupLoading, value, "IsLookupLoading"); }
+        }
+
         public bool HasLookupPhonetic
         {
             get { return !string.IsNullOrWhiteSpace(LookupPhonetic); }
@@ -143,6 +165,11 @@ namespace MyCaption.Core.Models
         public bool HasLookupExample
         {
             get { return !string.IsNullOrWhiteSpace(LookupExample); }
+        }
+
+        public bool HasLookupRawContent
+        {
+            get { return !string.IsNullOrWhiteSpace(LookupRawContent); }
         }
 
         public bool HasLookupStatusMessage
@@ -179,7 +206,9 @@ namespace MyCaption.Core.Models
             LookupPhonetic = string.Empty;
             LookupMeanings.Clear();
             LookupExample = string.Empty;
-            LookupStatusMessage = "Looking up dictionary entry...";
+            LookupRawContent = string.Empty;
+            LookupStatusMessage = string.Empty;
+            IsLookupLoading = true;
             OnPropertyChanged("HasLookupMeanings");
         }
 
@@ -192,7 +221,9 @@ namespace MyCaption.Core.Models
                 LookupPhonetic = string.Empty;
                 LookupMeanings.Clear();
                 LookupExample = string.Empty;
+                LookupRawContent = string.Empty;
                 LookupStatusMessage = string.Empty;
+                IsLookupLoading = false;
                 OnPropertyChanged("HasLookupMeanings");
                 return;
             }
@@ -202,7 +233,6 @@ namespace MyCaption.Core.Models
             LookupPhonetic = result.Phonetic;
             LookupMeanings.Clear();
 
-            int count = 0;
             foreach (LookupMeaning meaning in result.Meanings)
             {
                 if (meaning == null || string.IsNullOrWhiteSpace(meaning.Definition))
@@ -214,15 +244,12 @@ namespace MyCaption.Core.Models
                     ? meaning.Definition
                     : meaning.PartOfSpeech + " - " + meaning.Definition;
                 LookupMeanings.Add(line);
-                count++;
-                if (count >= 3)
-                {
-                    break;
-                }
             }
 
             LookupExample = result.Example ?? string.Empty;
+            LookupRawContent = result.RawContent ?? string.Empty;
             LookupStatusMessage = result.StatusMessage ?? string.Empty;
+            IsLookupLoading = false;
             OnPropertyChanged("HasLookupMeanings");
         }
 

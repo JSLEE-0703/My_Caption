@@ -25,7 +25,7 @@ namespace MyCaption.Core.Lookup
                 new LookupMeaning("noun", "Stub dictionary entry for provider integration testing.")
             };
 
-            return Task.FromResult(new LookupResult(normalized, phonetic, meanings, string.Empty, "Stub dictionary provider result.", true));
+            return Task.FromResult(new LookupResult(normalized, phonetic, meanings, string.Empty, string.Empty, "Stub dictionary provider result.", true));
         }
     }
 }

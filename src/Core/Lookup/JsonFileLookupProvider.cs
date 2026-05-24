@@ -46,18 +46,18 @@ namespace MyCaption.Core.Lookup
             string normalized = NormalizeWord(word);
             if (string.IsNullOrWhiteSpace(normalized))
             {
-                return Task.FromResult(new LookupResult(string.Empty, string.Empty, new List<LookupMeaning>(), string.Empty, "Select an English word to look it up.", false));
+                return Task.FromResult(new LookupResult(string.Empty, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, "Select an English word to look it up.", false));
             }
 
             if (!string.IsNullOrWhiteSpace(_loadFailureMessage))
             {
-                return Task.FromResult(new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, _loadFailureMessage, false));
+                return Task.FromResult(new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, _loadFailureMessage, false));
             }
 
             JsonDictionaryEntry entry;
             if (!TryFindEntry(normalized, out entry))
             {
-                return Task.FromResult(new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, "No dictionary entry found for this word.", false));
+                return Task.FromResult(new LookupResult(normalized, string.Empty, new List<LookupMeaning>(), string.Empty, string.Empty, "No dictionary entry found for this word.", false));
             }
 
             List<LookupMeaning> meanings = new List<LookupMeaning>();
@@ -80,6 +80,7 @@ namespace MyCaption.Core.Lookup
                 entry.Phonetic ?? string.Empty,
                 meanings,
                 entry.Example ?? string.Empty,
+                string.Empty,
                 meanings.Count == 0 ? "This entry has no definitions yet." : string.Empty,
                 true));
         }
