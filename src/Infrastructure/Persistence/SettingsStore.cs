@@ -7,11 +7,15 @@ namespace MyCaption.Infrastructure.Persistence
 {
     public sealed class SettingsStore
     {
+        private const string SettingsFileName = "settings.json";
+
         private readonly string _settingsPath;
+        private readonly string _legacySettingsPath;
 
         public SettingsStore()
         {
-            _settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            _legacySettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, SettingsFileName);
+            _settingsPath = ResolveSettingsPath(_legacySettingsPath);
         }
 
         public string SettingsPath
@@ -23,6 +27,8 @@ namespace MyCaption.Infrastructure.Persistence
         {
             try
             {
+                EnsureMigratedSettingsFile();
+
                 if (!File.Exists(_settingsPath))
                 {
                     AppSettings defaults = new AppSettings();
@@ -45,7 +51,7 @@ namespace MyCaption.Infrastructure.Persistence
             }
             catch
             {
-                return new AppSettings();
+                return LoadLegacyOrDefault();
             }
         }
 
@@ -68,6 +74,70 @@ namespace MyCaption.Infrastructure.Persistence
             {
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(AppSettings));
                 serializer.WriteObject(stream, settings);
+            }
+        }
+
+        private static string ResolveSettingsPath(string fallbackPath)
+        {
+            string applicationDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (string.IsNullOrWhiteSpace(applicationDataPath))
+            {
+                return fallbackPath;
+            }
+
+            return Path.Combine(applicationDataPath, "My Caption", SettingsFileName);
+        }
+
+        private void EnsureMigratedSettingsFile()
+        {
+            if (string.Equals(_settingsPath, _legacySettingsPath, StringComparison.OrdinalIgnoreCase) ||
+                File.Exists(_settingsPath) ||
+                !File.Exists(_legacySettingsPath))
+            {
+                return;
+            }
+
+            try
+            {
+                string directory = Path.GetDirectoryName(_settingsPath);
+                if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                File.Copy(_legacySettingsPath, _settingsPath, false);
+            }
+            catch
+            {
+            }
+        }
+
+        private AppSettings LoadLegacyOrDefault()
+        {
+            if (string.Equals(_settingsPath, _legacySettingsPath, StringComparison.OrdinalIgnoreCase) ||
+                !File.Exists(_legacySettingsPath))
+            {
+                return new AppSettings();
+            }
+
+            try
+            {
+                using (Stream stream = File.OpenRead(_legacySettingsPath))
+                {
+                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(AppSettings));
+                    AppSettings settings = serializer.ReadObject(stream) as AppSettings;
+                    if (settings == null)
+                    {
+                        settings = new AppSettings();
+                    }
+
+                    settings.ApplyDefaults();
+                    return settings;
+                }
+            }
+            catch
+            {
+                return new AppSettings();
             }
         }
     }
