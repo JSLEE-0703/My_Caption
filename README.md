@@ -32,6 +32,7 @@ Current release-oriented asset layout:
 - `runtime\mdict\`: optional bundled standalone mdict executable location
 - `tools\argos_translate_stdin.py`: bundled Argos translation bridge script
 - `tools\mdict_query_stdin.py`: persistent MDict query bridge script
+- `assets\icon\MyCaption.ico`: application and installer icon
 
 Current repository note:
 
@@ -63,13 +64,51 @@ Build Release on this machine:
 Output:
 
 - `D:\My_Caption\bin\Release\MyCaption.exe`
+- Release output should include `runtime\`, `dictionary\`, and `tools\`.
+
+Smoke checks for the bundled offline paths:
+
+```powershell
+"hello" | .\bin\Release\runtime\python\python.exe .\bin\Release\tools\argos_translate_stdin.py --from en --to zh
+'{"text":"hello"}' | .\bin\Release\runtime\python\python.exe .\bin\Release\tools\mdict_query_stdin.py .\bin\Release\dictionary\default.mdx
+```
 
 Notes:
 
 - The repository currently targets `.NET Framework 4.8`.
 - The machine can build with MSBuild even if the newer `.NET SDK` is not installed.
-- The current build environment has the `.NET Framework 4.8` targeting pack installed and can build `Release|x64` with 0 warnings and 0 errors.
+- The current build environment has the `.NET Framework 4.8` targeting pack installed and built `Release|x64` with 0 warnings and 0 errors on 2026-05-24.
+- The bundled Argos and MDict smoke checks passed on 2026-05-24.
 - Git LFS content must be hydrated before building if the checkout is fresh or if the LFS files were left as pointer files.
+
+## Installer
+
+The repository includes an Inno Setup script at `installer\MyCaption.iss`.
+
+Build prerequisites:
+
+- Build `Release|x64` first.
+- Install Inno Setup on the packaging machine so `ISCC.exe` is available.
+- Make sure Git LFS files are hydrated before packaging.
+
+Build the installer:
+
+```powershell
+ISCC.exe .\installer\MyCaption.iss
+```
+
+Expected installer output:
+
+- `dist\MyCaptionSetup-0.1.0.exe`
+
+The installer copies the `bin\Release` application payload into `Program Files`, including `runtime\`, `dictionary\`, and `tools\`. It excludes `settings.json`, uses `assets\icon\MyCaption.ico` for installer branding, creates Start Menu shortcuts, optionally creates a desktop shortcut, warns when `.NET Framework 4.8` is not detected, and launches the app after installation when selected.
+
+Uninstall behavior:
+
+- Installed program files and shortcuts are removed by the Inno Setup uninstaller.
+- `runtime\`, `tools\`, and `dictionary\` under the install directory are removed recursively so runtime-generated cache files do not leave the app directory behind.
+- `%AppData%\My Caption` is preserved by default.
+- After uninstalling program files, the uninstaller asks whether to delete `%AppData%\My Caption`; choosing Yes removes the user settings directory.
 
 ## Architecture
 
@@ -96,7 +135,7 @@ The `src/Core` area contains domain and runtime logic:
 The `src/Infrastructure` area contains environment-specific support:
 
 - `Automation`: access to the Live Captions UI Automation surface
-- `Persistence`: settings storage in `settings.json`
+- `Persistence`: settings storage in `%AppData%\My Caption\settings.json`
 - `Windows`: keyboard state monitoring and native Win32 helpers
 
 ### UI
@@ -321,11 +360,12 @@ powershell -ExecutionPolicy Bypass -File 'D:\My_Caption\tools\import-mdx.ps1' `
 
 ## Settings And Persistence
 
-Settings are stored in `settings.json` in the application base directory.
+Settings are stored in `%AppData%\My Caption\settings.json`.
 
 Persistence behavior:
 
 - `SettingsStore.Load()` creates a default settings file if none exists
+- if `%AppData%\My Caption\settings.json` does not exist but an application-directory `settings.json` does, the legacy file is copied into the AppData location on first load
 - deserialization failures fall back to a new in-memory `AppSettings`
 - `ApplyDefaults()` is called after loading and before saving
 - Fresh defaults select bundled translation and dictionary assets when they are available.
@@ -438,10 +478,11 @@ When debugging issues, it helps to separate them by subsystem:
 Highest-value follow-up work currently identified in the repository:
 
 1. Decide whether the bundled `runtime` should stay mostly in normal Git, move more files to Git LFS, or move to a release artifact workflow.
-2. Improve dictionary morphology fallback and support richer entry shapes where cleaned full-page display is not enough.
-3. Improve settings UX for language direction and provider-specific configuration.
-4. Move user settings out of the application base directory before installing to protected locations such as `Program Files`.
-5. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
+2. Validate install, launch, offline translation, MDict lookup, and uninstall behavior with the generated Inno Setup installer.
+3. Validate AppData settings creation and legacy application-directory `settings.json` migration by launching the WPF app.
+4. Improve dictionary morphology fallback and support richer entry shapes where cleaned full-page display is not enough.
+5. Improve settings UX for language direction and provider-specific configuration.
+6. Revisit whether the long-term app shape should stay control-panel-first or move toward tray-first behavior.
 
 ## File Map
 
@@ -454,3 +495,4 @@ Useful starting points:
 - `src/Core/Lookup/*`: lookup interfaces, hosts, factories, and providers
 - `src/UI/MainWindow/*`: control panel UI and provider settings interactions
 - `src/UI/Overlay/*`: overlay rendering and word lookup interaction
+- `assets/icon/*`: source PNG and Windows icon used by the app and installer
