@@ -32,6 +32,8 @@ The application targets `.NET Framework 4.8`. The installer checks for .NET Fram
 
 ## Usage
 
+> Before using My Caption, make sure the computer is running Windows 11 and Windows Live Captions can open normally. My Caption depends on the Windows Live Captions window for text capture; if Live Captions cannot start, caption capture, translation, and word lookup will not work correctly.
+
 1. Start Windows Live Captions.
 2. Start My Caption.
 3. Use the control panel to configure caption display, translation, and dictionary lookup.
