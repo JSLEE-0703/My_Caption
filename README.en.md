@@ -11,6 +11,7 @@ My Caption is a Windows subtitle companion for Windows Live Captions. It capture
 - Shows captions in a low-distraction WPF overlay.
 - Supports offline translation with bundled Argos Translate assets.
 - Supports word lookup with a bundled MDict dictionary.
+- Runs fully offline; after installation, caption capture, offline translation, and dictionary lookup work without an internet connection.
 - Lets the user hold `Alt` to temporarily interact with the overlay.
 - Stores user settings in a user-writable AppData location.
 - Provides a Windows installer built with Inno Setup.
@@ -32,10 +33,10 @@ The application targets `.NET Framework 4.8`. The installer checks for .NET Fram
 
 ## Usage
 
-> Before using My Caption, make sure the computer is running Windows 11 and Windows Live Captions can open normally. My Caption depends on the Windows Live Captions window for text capture; if Live Captions cannot start, caption capture, translation, and word lookup will not work correctly.
+> Before using My Caption, make sure the computer is running Windows 11 and Windows Live Captions can be enabled normally. My Caption automatically starts and connects to Windows Live Captions; if Live Captions cannot start, caption capture, translation, and word lookup will not work correctly.
 
-1. Start Windows Live Captions.
-2. Start My Caption.
+1. Start My Caption.
+2. Wait for the app to automatically start and connect to Windows Live Captions.
 3. Use the control panel to configure caption display, translation, and dictionary lookup.
 4. Keep the overlay click-through during normal use.
 5. Hold `Alt` to interact with the overlay, move it, or click an English word to open the dictionary popup.
