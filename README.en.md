@@ -16,6 +16,26 @@ My Caption is a Windows subtitle companion for Windows Live Captions. It capture
 - Stores user settings in a user-writable AppData location.
 - Provides a Windows installer built with Inno Setup.
 
+## Feature Showcase
+
+### Dictionary Lookup
+
+![Dictionary lookup](sample1.png)
+
+### Choose A Preferred Dictionary
+
+![Choose a preferred dictionary](sample2.png)
+
+### Multiple Translation Providers
+
+> This feature is currently still in development.
+
+![Multiple translation providers](sample3.png)
+
+### MDX And JSON File Dictionary Formats
+
+![MDX and JSON File dictionary formats](sample4.png)
+
 ## Release Version
 
 The recommended way to install My Caption is to download the Windows installer from GitHub Releases.
