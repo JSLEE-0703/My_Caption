@@ -93,4 +93,6 @@ The repository uses Git LFS for selected large runtime files. If building or pac
 
 ## Attribution
 
+The default bundled dictionary comes from [skywind3000/ECDICT](https://github.com/skywind3000/ECDICT).
+
 The bundled dictionary attribution is recorded in `dictionary\ATTRIBUTION.txt`.

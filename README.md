@@ -93,4 +93,6 @@ Inno Setup 卸载程序会删除已安装的程序文件和快捷方式。
 
 ## 致谢
 
+默认内置词典来自 [skywind3000/ECDICT](https://github.com/skywind3000/ECDICT)。
+
 内置词典的来源和许可信息记录在 `dictionary\ATTRIBUTION.txt`。
