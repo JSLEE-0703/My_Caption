@@ -10,4 +10,6 @@ __pycache__/
 *.pdb
 
 settings.json
+AGENTS.md
+PROJECT_STATE.md
 tools/argos-data/
